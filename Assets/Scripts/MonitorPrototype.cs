@@ -15,6 +15,7 @@ namespace Pixamor
         [SerializeField] private FirstPersonOperator player;
         private GameSession session;
         private CrisisManager crises;
+        private GameFlowController flow;
         private CommandUI ui;
         private GameObject screenRoot;
         private RectTransform content;
@@ -60,6 +61,9 @@ namespace Pixamor
             }
             BuildScreen();
             EnsureInput();
+            flow = GetComponent<GameFlowController>();
+            if (flow == null) flow = gameObject.AddComponent<GameFlowController>();
+            flow.Initialize(session,crises,player,worldMap);
         }
 
         private void BuildScreen()
@@ -90,7 +94,9 @@ namespace Pixamor
             status = ui.Text(root,"",62,117,1050,46,25,CommandUI.Teal,"strong");
             status.alignment = TextAnchor.MiddleLeft;
             BuildMetrics(root);
-            var help = ui.Caption(root,"E  AYRIL  /  ESC  İMLECİ BIRAK",695,36,500);
+            var pauseButton = ui.Button(root,"PauseShortcut",695,30,500,48,()=>flow?.Pause(),new Color(0,0,0,.15f));
+            pauseButton.GetComponent<Outline>().enabled=false;
+            var help = ui.Caption(pauseButton.transform,"ESC  DURAKLAT  /  E  AYRIL",0,8,500);
             help.alignment = TextAnchor.MiddleCenter;
         }
 
@@ -139,7 +145,7 @@ namespace Pixamor
         private void Update()
         {
             if (screenRoot == null) return;
-            raycaster.enabled = player.IsUsingMonitor;
+            raycaster.enabled = player.IsUsingMonitor && !player.UIBlocked;
             budget.text = session.Money.ToString();
             income.text = session.State == SessionState.Running
                 ? $"+{session.IncomeAmount} / {Mathf.CeilToInt(session.TimeUntilIncome)} sn" : "VARDİYA BİTTİ";

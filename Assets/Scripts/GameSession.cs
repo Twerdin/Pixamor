@@ -25,7 +25,9 @@ namespace Pixamor
         public float RemainingTime { get; private set; }
         public float ElapsedTime { get; private set; }
         public float TimeUntilIncome => Mathf.Max(0f, incomeInterval - incomeTimer);
-        public bool IsPaused { get; private set; }
+        // Kartın ve menünün duraklatması bağımsızdır; biri kapanınca diğeri sürer.
+        public bool IsPaused => gameplayPaused || IsMenuPaused;
+        public bool IsMenuPaused { get; private set; }
         public SessionState State { get; private set; }
         public string EndReason { get; private set; }
         public bool HasHappinessWarning => Happiness < 25;
@@ -41,6 +43,7 @@ namespace Pixamor
         public event Action<float> TimeAdvanced;
 
         private float incomeTimer;
+        private bool gameplayPaused;
 
         private void Awake()
         {
@@ -55,7 +58,8 @@ namespace Pixamor
             RemainingTime = Mathf.Max(1f, shiftDuration);
             ElapsedTime = 0f;
             incomeTimer = 0f;
-            IsPaused = false;
+            gameplayPaused = false;
+            IsMenuPaused = false;
             State = SessionState.Running;
             EndReason = string.Empty;
             Restarted?.Invoke();
@@ -99,12 +103,19 @@ namespace Pixamor
 
         public void SetPaused(bool paused)
         {
-            if (State != SessionState.Running || IsPaused == paused)
+            if (State != SessionState.Running || gameplayPaused == paused)
                 return;
 
             // Time.timeScale yerine ortak oyun saatini durduruyoruz.
             // Kart animasyonları ve arayüz çalışmaya devam edebilir.
-            IsPaused = paused;
+            gameplayPaused = paused;
+            Changed?.Invoke();
+        }
+
+        public void SetMenuPaused(bool paused)
+        {
+            if (IsMenuPaused == paused) return;
+            IsMenuPaused = paused;
             Changed?.Invoke();
         }
 
@@ -117,7 +128,7 @@ namespace Pixamor
         // Kart açıkken de karar verilebilmesi için IsPaused kontrol edilmez.
         public bool TryApplyIntervention(int cost, int happinessChange, int climateChange)
         {
-            if (State != SessionState.Running || !CanAfford(cost))
+            if (State != SessionState.Running || IsMenuPaused || !CanAfford(cost))
                 return false;
 
             Money -= cost;
@@ -128,7 +139,7 @@ namespace Pixamor
         // Kaçırılan kriz gibi para gerektirmeyen sonuçlar için de kullanılabilir.
         public void ApplyResourceChanges(int happinessChange, int climateChange)
         {
-            if (State != SessionState.Running)
+            if (State != SessionState.Running || IsMenuPaused)
                 return;
 
             Happiness = Mathf.Clamp(Happiness + happinessChange, 0, 100);
@@ -153,7 +164,8 @@ namespace Pixamor
 
             State = result;
             EndReason = reason;
-            IsPaused = false;
+            gameplayPaused = false;
+            IsMenuPaused = false;
             Ended?.Invoke(State);
             Changed?.Invoke();
         }

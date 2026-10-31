@@ -12,6 +12,15 @@ namespace Pixamor
         [SerializeField] private float walkSpeed = 3f;
         [SerializeField] private float mouseSensitivity = .10f;
         public bool IsUsingMonitor { get; private set; }
+        public bool UIBlocked { get; private set; }
+        public float MouseSensitivity
+        {
+            get => mouseSensitivity;
+            set => mouseSensitivity = Mathf.Clamp(value,.03f,.3f);
+        }
+        private GameFlowController flow;
+        private Vector3 spawnPosition;
+        private Quaternion spawnRotation;
         private CharacterController body;
         private float pitch;
         private float verticalSpeed;
@@ -28,9 +37,11 @@ namespace Pixamor
         private void Start()
         {
             body = GetComponent<CharacterController>();
+            spawnPosition = transform.position;
+            spawnRotation = transform.rotation;
             eyePosition = viewCamera.transform.localPosition;
             walkFov = viewCamera.fieldOfView;
-            CaptureMouse(true);
+            CaptureMouse(!UIBlocked);
         }
 
         private bool InReach => Vector3.Distance(transform.position + Vector3.up * 1.65f,
@@ -38,11 +49,12 @@ namespace Pixamor
 
         private void Update()
         {
+            if (UIBlocked) return;
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
             if (keyboard == null || mouse == null) return;
 
-            if (keyboard.escapeKey.wasPressedThisFrame)
+            if (flow == null && keyboard.escapeKey.wasPressedThisFrame)
             {
                 if (IsUsingMonitor) ExitMonitor();
                 CaptureMouse(false);
@@ -85,7 +97,7 @@ namespace Pixamor
 
         public void EnterMonitor()
         {
-            if (!Application.isPlaying || IsUsingMonitor || viewCamera == null || monitor == null) return;
+            if (!Application.isPlaying || UIBlocked || IsUsingMonitor || viewCamera == null || monitor == null) return;
             IsUsingMonitor = true;
             // Oyuncuyu taşımadan kamerayı okuma konumuna getiririz.
             viewCamera.transform.SetPositionAndRotation(monitor.position - monitor.forward * 4.7f,
@@ -105,6 +117,32 @@ namespace Pixamor
             CaptureMouse(true);
         }
 
+        public void ConfigureFlow(GameFlowController controller)
+        {
+            flow = controller;
+        }
+
+        public void SetUIBlocked(bool blocked)
+        {
+            UIBlocked = blocked;
+            CaptureMouse(!blocked && !IsUsingMonitor);
+        }
+
+        public void ResetForShift()
+        {
+            if (body == null) return;
+            crises.CloseCard();
+            body.enabled = false;
+            transform.SetPositionAndRotation(spawnPosition,spawnRotation);
+            body.enabled = true;
+            IsUsingMonitor = false;
+            pitch = verticalSpeed = 0;
+            viewCamera.transform.localPosition = eyePosition;
+            viewCamera.transform.localRotation = Quaternion.identity;
+            viewCamera.fieldOfView = walkFov;
+            CaptureMouse(!UIBlocked);
+        }
+
         private static void CaptureMouse(bool capture)
         {
             Cursor.lockState = capture ? CursorLockMode.Locked : CursorLockMode.None;
@@ -121,9 +159,9 @@ namespace Pixamor
         private void OnGUI()
         {
             // Monitör kullanılırken talimatlar ekranın kendi alt şeridindedir.
-            if (monitor == null || IsUsingMonitor) return;
+            if (monitor == null || IsUsingMonitor || UIBlocked) return;
             string hint = InReach ? "Monitöre bak ve E'ye bas | WASD: yürü | Fare: bak | Shift: hızlan" :
-                "WASD: yürü | Fare: bak | Monitöre yaklaş | Esc: imleci bırak";
+                "WASD: yürü | Fare: bak | Monitöre yaklaş | Esc: duraklat";
             GUI.Box(new Rect(15, Screen.height - 50, Mathf.Min(780, Screen.width - 30), 35), hint);
             if (!IsUsingMonitor && Cursor.lockState == CursorLockMode.Locked)
                 GUI.Label(new Rect(Screen.width / 2f - 5, Screen.height / 2f - 10, 20, 20), "+");

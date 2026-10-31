@@ -49,7 +49,8 @@ namespace Pixamor
                 timer.text=Mathf.CeilToInt(left)+" sn";
                 timer.color=left<=10f?CommandUI.Red:CommandUI.White;
                 outline.effectColor=warning;
-                halo.localScale=Vector3.one*(1f+.06f*Mathf.Sin(session.ElapsedTime*(left<=10f?5f:2f)));
+                halo.localScale=Vector3.one*(flow != null && !flow.AnimationsEnabled ? 1f :
+                    1f+.06f*Mathf.Sin(session.ElapsedTime*(left<=10f?5f:2f)));
             });
         }
 

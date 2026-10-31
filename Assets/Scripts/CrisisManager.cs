@@ -92,7 +92,7 @@ namespace Pixamor
 
         public bool Open(ActiveCrisis crisis)
         {
-            if (session.State != SessionState.Running || OpenCard != null ||
+            if (session.State != SessionState.Running || session.IsMenuPaused || OpenCard != null ||
                 crisis == null || crisis.IsResolved || !active.Contains(crisis))
                 return false;
 
@@ -111,7 +111,7 @@ namespace Pixamor
         public bool Choose(int optionIndex)
         {
             var crisis = OpenCard;
-            if (session.State != SessionState.Running || crisis == null ||
+            if (session.State != SessionState.Running || session.IsMenuPaused || crisis == null ||
                 crisis.IsResolved || !active.Contains(crisis) ||
                 optionIndex < 0 || optionIndex >= crisis.Data.Options.Length)
                 return false;
