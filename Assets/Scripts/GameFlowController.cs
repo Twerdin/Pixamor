@@ -54,8 +54,8 @@ namespace Pixamor
             var scaler = overlay.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1600,1040);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = .5f;
+            // Bütün menü 4:3 ve geniş ekranlarda kesilmeden sığar; arka plan ekranı kaplar.
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             backdrop = ui.Rect(overlay.transform,"WorldBackdrop",0,0,1600,1040).gameObject.AddComponent<RawImage>();
             Stretch(backdrop.rectTransform);
             backdrop.texture = map;
