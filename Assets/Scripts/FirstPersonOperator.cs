@@ -83,8 +83,9 @@ namespace Pixamor
             body.Move(velocity * Time.deltaTime);
         }
 
-        private void EnterMonitor()
+        public void EnterMonitor()
         {
+            if (!Application.isPlaying || IsUsingMonitor || viewCamera == null || monitor == null) return;
             IsUsingMonitor = true;
             // Oyuncuyu taşımadan kamerayı okuma konumuna getiririz.
             viewCamera.transform.SetPositionAndRotation(monitor.position - monitor.forward * 4.7f,
@@ -119,9 +120,9 @@ namespace Pixamor
 
         private void OnGUI()
         {
-            if (monitor == null) return;
-            string hint = IsUsingMonitor ? "Monitör: fareyle tıkla | E: odada gezin | Esc: imleci bırak" :
-                InReach ? "Monitöre bak ve E'ye bas | WASD: yürü | Fare: bak | Shift: hızlan" :
+            // Monitör kullanılırken talimatlar ekranın kendi alt şeridindedir.
+            if (monitor == null || IsUsingMonitor) return;
+            string hint = InReach ? "Monitöre bak ve E'ye bas | WASD: yürü | Fare: bak | Shift: hızlan" :
                 "WASD: yürü | Fare: bak | Monitöre yaklaş | Esc: imleci bırak";
             GUI.Box(new Rect(15, Screen.height - 50, Mathf.Min(780, Screen.width - 30), 35), hint);
             if (!IsUsingMonitor && Cursor.lockState == CursorLockMode.Locked)

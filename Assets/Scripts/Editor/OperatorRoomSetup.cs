@@ -6,6 +6,16 @@ namespace Pixamor.Editor
 {
     public static class OperatorRoomSetup
     {
+        [MenuItem("İklim Operatörü/Monitörü Önizle (Play)")]
+        public static void PreviewMonitor()
+        {
+            var player = Object.FindAnyObjectByType<FirstPersonOperator>();
+            if (EditorApplication.isPlaying && player != null) player.EnterMonitor();
+        }
+
+        [MenuItem("İklim Operatörü/Monitörü Önizle (Play)", true)]
+        public static bool CanPreviewMonitor() => EditorApplication.isPlaying;
+
         [MenuItem("İklim Operatörü/Odayı Kur")]
         public static void Setup()
         {

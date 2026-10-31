@@ -19,6 +19,7 @@ namespace Pixamor
         [SerializeField, Min(0)] private int incomeAmount = 30;
 
         public int Money { get; private set; }
+        public int IncomeAmount => incomeAmount;
         public int Happiness { get; private set; }
         public int Climate { get; private set; }
         public float RemainingTime { get; private set; }
