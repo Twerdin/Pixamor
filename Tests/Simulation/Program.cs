@@ -30,10 +30,10 @@ partial class Check {
  static void RunCrises() {
   CreateSimulation(out var g,out var m);
   var data=CrisisCatalog.Create();Assert(data.Length==16,"16 yazılmış afet");
-  foreach(var d in data)Assert(d.Options.Length==3 && d.Options[2].Cost==0 && d.ResponseDuration==30,"Üç seçenek, ücretsiz çıkış, 30 saniye");
+  foreach(var d in data)Assert(d.Options.Length==3 && d.Options[2].Cost==0 && d.ResponseDuration==25,"Üç seçenek, ücretsiz çıkış, 25 saniye");
   Tick(g,4);Assert(m.Active.Count==0,"5. saniyeden önce afet yok");Tick(g,1);
   var first=m.Active[0];Assert(m.Open(first) && !g.IsPaused,"Kart açılması zamanı durdurmaz");
-  Tick(g,20);Assert(g.ElapsedTime==25 && m.Active.Count==2 && m.OpenCard==first && m.SecondsLeft(first)==10,"Açık kartta zaman ve ikinci afet ilerler");
+  Tick(g,20);Assert(g.ElapsedTime==25 && m.Active.Count==2 && m.OpenCard==first && m.SecondsLeft(first)==5,"Açık kartta zaman ve ikinci afet ilerler");
   m.CloseCard();m.Open(m.Active[1]);var second=m.OpenCard;
   Tick(g,10);Assert(first.IsResolved && m.MissedCount==1 && m.OpenCard==second && g.Happiness==55,"Diğer afetin süresi dolunca mevcut kart korunur");
   Tick(g,20);Assert(second.IsResolved && m.OpenCard==null && m.MissedCount==2,"Açık kartın süresi dolunca ceza bir kez uygulanır ve kart kapanır");
@@ -47,7 +47,7 @@ partial class Check {
   g.RestartSession();Tick(g,360);Assert(g.State==SessionState.Lost && m.MissedCount>0,"Uzun karede süre aşımı ve kayıp işlenir");
   g.RestartSession();Tick(g,5);m.Open(m.Active[0]);g.RestartSession();Assert(m.OpenCard==null && m.Active.Count==0 && !g.IsPaused,"Yeniden başlatma açık krizi temizler");
  }
- static void Main() { RunBalancePolicies(); RunCrises();
+ static void Main() { RunDifficultyLanguageChecks(); RunBalancePolicies(); RunCrises();
   var g=new GameSession(); g.RestartSession();
   Assert(g.Money==60 && g.Happiness==70 && g.Climate==70 && g.RemainingTime==360,"Initial resources");
   g.SetPaused(true); Tick(g,65); Assert(g.RemainingTime==360 && g.Money==60,"Pause freezes time and income");
@@ -65,3 +65,4 @@ partial class Check {
   g.RestartSession(); g.ApplyResourceChanges(-46,-46); Assert(g.HasHappinessWarning && g.HasClimateWarning,"Warnings below 25");
  }
 }
+

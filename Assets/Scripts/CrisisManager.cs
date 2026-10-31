@@ -52,7 +52,7 @@ namespace Pixamor
         private void ResetCrises()
         {
             catalog = CrisisCatalog.Create();
-
+            foreach (var data in catalog) data.ResponseDuration = session.ResponseDuration;
             // Her yeni vardiyada olayları kayıpsız karıştır; aynı afet iki kez eklenmez.
             if (shuffleOnRestart) for (int i = catalog.Length - 1; i > 0; i--)
             {
@@ -164,4 +164,3 @@ namespace Pixamor
         }
     }
 }
-

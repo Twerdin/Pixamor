@@ -65,7 +65,7 @@ partial class Check
         var second = SimulatePolicy((i, data) => 1);
         var free = SimulatePolicy((i, data) => 2);
         var mixed = SimulatePolicy((i, data) => i == 1 || i == 6 || i == 8 ? 0 : 1);
-        var delayed = SimulatePolicy((i, data) => i == 1 || i == 6 || i == 8 ? 0 : 1, 25);
+        var delayed = SimulatePolicy((i, data) => i == 1 || i == 6 || i == 8 ? 0 : 1, 22);
         Console.WriteLine("Pahalı tercih + bütçe yoksa ücretsiz: " + first);
         Console.WriteLine("Daima ikinci seçenek: " + second);
         Console.WriteLine("Daima ücretsiz: " + free);
@@ -102,3 +102,4 @@ partial class Check
         }
     }
 }
+

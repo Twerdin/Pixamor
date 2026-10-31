@@ -19,7 +19,7 @@ partial class Check
         Assert(manager.OpenCard==null && manager.MissedCount==1,"Menüden dönünce kartın süresi kaldığı yerden ilerler");
         session.RestartSession();
         // Son kriz tam vardiya sonunda biterse kayıp, kazanmayı geçersiz kılar.
-        typeof(CrisisManager).GetField("firstCrisisTime",flags).SetValue(manager,30f);
+        typeof(CrisisManager).GetField("firstCrisisTime",flags).SetValue(manager,35f);
         var catalog=(CrisisData[])typeof(CrisisManager).GetField("catalog",flags).GetValue(manager);
         foreach(var crisis in catalog)crisis.TimeoutResult=new InterventionData("Test",0,0,0,"Test",false);
         catalog[15].TimeoutResult=new InterventionData("Test",0,0,-100,"Test",false);
@@ -58,3 +58,4 @@ partial class Check
         Assert(!session.IsMenuPaused && !session.IsPaused && session.ElapsedTime==0,"Yeni vardiya eski duraklatma durumlarını temizler");
     }
 }
+

@@ -27,6 +27,7 @@ namespace Pixamor
         private GameScreen returnScreen;
         private float oldAudioVolume;
         private bool initialized;
+        private GameDifficulty selectedDifficulty;
 
         public void Initialize(GameSession game,CrisisManager events,FirstPersonOperator controller,Texture2D map)
         {
@@ -40,6 +41,7 @@ namespace Pixamor
             AudioListener.volume = Mathf.Clamp01(PlayerPrefs.GetFloat("Pixamor.MasterVolume",.75f));
             player.MouseSensitivity = PlayerPrefs.GetFloat("Pixamor.MouseSensitivity",.10f);
             AnimationsEnabled = PlayerPrefs.GetInt("Pixamor.Animations",1) != 0;
+            selectedDifficulty = PlayerPrefs.GetInt("Pixamor.Difficulty",0)==1 ? GameDifficulty.Hard : GameDifficulty.Easy;
             ui = new CommandUI();
             BuildOverlay(map);
             session.Ended += OnSessionEnded;
@@ -130,9 +132,16 @@ namespace Pixamor
             }
         }
 
+        private void SelectDifficulty(GameDifficulty difficulty)
+        {
+            if(Screen!=GameScreen.MainMenu)return;
+            selectedDifficulty=difficulty;
+            PlayerPrefs.SetInt("Pixamor.Difficulty",(int)difficulty);PlayerPrefs.Save();
+            Show(GameScreen.MainMenu);
+        }
         public void StartShift()
         {
-            session.RestartSession();
+            session.RestartSession(selectedDifficulty);
             Show(GameScreen.Playing);
             player.ResetForShift();
         }
@@ -201,3 +210,5 @@ namespace Pixamor
         }
     }
 }
+
+

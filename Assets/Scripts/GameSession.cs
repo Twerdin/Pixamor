@@ -9,7 +9,9 @@ namespace Pixamor
     public class GameSession : MonoBehaviour
     {
         [Header("Başlangıç kaynakları")]
-        [SerializeField, Min(0)] private int startingMoney = 60;
+        [SerializeField] private GameDifficulty difficulty = GameDifficulty.Hard;
+        public GameDifficulty Difficulty => difficulty;
+        public float ResponseDuration => DifficultyRules.ResponseTime(difficulty);
         [SerializeField, Range(0, 100)] private int startingHappiness = 70;
         [SerializeField, Range(0, 100)] private int startingClimate = 70;
 
@@ -50,9 +52,15 @@ namespace Pixamor
             RestartSession();
         }
 
+        public void RestartSession(GameDifficulty selected)
+        {
+            difficulty=selected;
+            RestartSession();
+        }
+
         public void RestartSession()
         {
-            Money = Mathf.Max(0, startingMoney);
+            Money = DifficultyRules.Budget(difficulty);
             Happiness = Mathf.Clamp(startingHappiness, 0, 100);
             Climate = Mathf.Clamp(startingClimate, 0, 100);
             RemainingTime = Mathf.Max(1f, shiftDuration);
@@ -171,3 +179,4 @@ namespace Pixamor
         }
     }
 }
+

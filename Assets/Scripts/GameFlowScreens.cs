@@ -18,9 +18,14 @@ namespace Pixamor
         private void BuildMainMenu()
         {
             subtitle.text="OPERASYON TERMİNALİ / VARDİYA BAŞLANGICI";
-            ui.Text(body,"BİR DÜNYA.\nON ALTI KRİZ.\nTEK OPERATÖR.",80,34,920,350,88,CommandUI.White,"display");
-            ui.Text(body,"Halkı koru. Kaynaklarını yönet.\nİklim dengesini ayakta tut.",80,418,860,100,34,CommandUI.Muted);
-            MenuButton(body,"VARDİYAYI BAŞLAT  →",80,574,860,StartShift,true);
+            ui.Text(body,"BİR DÜNYA.\nON ALTI KRİZ.\nTEK OPERATÖR.",80,24,920,310,80,CommandUI.White,"display");
+            ui.Text(body,"Halkı koru. Kaynaklarını yönet.\nİklim dengesini ayakta tut.",80,354,860,70,28,CommandUI.Muted);
+            var easy=ui.Button(body,"DifficultyEasy",80,444,416,64,()=>SelectDifficulty(GameDifficulty.Easy),selectedDifficulty==GameDifficulty.Easy?new Color(.07f,.29f,.26f):CommandUI.Surface);
+            ui.Text(easy.transform,"KOLAY",18,12,380,40,30,selectedDifficulty==GameDifficulty.Easy?CommandUI.Teal:CommandUI.Muted,"strong");
+            var hard=ui.Button(body,"DifficultyHard",516,444,424,64,()=>SelectDifficulty(GameDifficulty.Hard),selectedDifficulty==GameDifficulty.Hard?new Color(.32f,.15f,.08f):CommandUI.Surface);
+            ui.Text(hard.transform,"ZOR",18,12,380,40,30,selectedDifficulty==GameDifficulty.Hard?CommandUI.Amber:CommandUI.Muted,"strong");
+            ui.Text(body,DifficultyRules.ResponseTime(selectedDifficulty)+" sn müdahale / "+DifficultyRules.Budget(selectedDifficulty)+" başlangıç bütçesi",80,524,860,38,26,CommandUI.White);
+            MenuButton(body,"VARDİYAYI BAŞLAT  →",80,574,860,StartShift,true).gameObject.name="StartShift";
             ui.Text(body,$"{FormatTime(session.RemainingTime)} VARDİYA   /   16 KRİZ   /   TEK ODA",80,682,890,38,25,CommandUI.Muted,"mono");
             var right=ui.Panel(body,"MenuActions",1040,68,480,588,new Color(.025f,.06f,.09f,.44f),true);
             ui.Icon(right,"Globe",28,28,70,CommandUI.Teal);
@@ -52,7 +57,7 @@ namespace Pixamor
             HelpCard(80,135,"01 / MONİTÖRE YAKLAŞ","Globe","WASD ile yürü, fareyle bak. Monitöre yaklaş ve E ile ekranı kullan.");
             HelpCard(830,135,"02 / MÜDAHALE SEÇ","Budget","Kriz işaretine tıkla. Maliyet ve etkileri karşılaştır. Kart açıkken zaman akar; diğer krizler de beklemez.");
             HelpCard(80,376,"03 / DENGEYİ KORU","People","Halk veya iklim sıfıra ulaşırsa kaybedersin. Para sıfırken ücretsiz seçenekleri kullanabilirsin.");
-            HelpCard(830,376,"04 / VARDİYAYI TAMAMLA","Clock","Her 60 saniyede bütçe gelir. Krizlere 30 saniyede cevap ver. Esc menüyü açar, E monitörden ayırır.");
+            HelpCard(830,376,"04 / VARDİYAYI TAMAMLA","Clock","Her 60 saniyede bütçe gelir. Seçtiğin zorluğun süresi dolmadan cevap ver. Esc menüyü açar, E monitörden ayırır.");
             MenuButton(body,"‹  Geri",80,652,1440,Back);
         }
 
@@ -124,6 +129,7 @@ namespace Pixamor
             string title=won?"Dengeyi korudun.":climateLoss?"İklim kontrolden çıktı.":"Halkın güveni tükendi.";
             ui.Text(body,title,80,38,1440,132,88,color,"display");
             ui.Text(body,session.EndReason,80,204,1440,76,32,CommandUI.Muted);
+            ui.Caption(body,DifficultyRules.Name(session.Difficulty),80,294,1440);
             ResultMetric(80,"MÜDAHALE",crises.HandledCount.ToString("00"),CommandUI.Teal);
             ResultMetric(446,"KAÇIRILAN",crises.MissedCount.ToString("00"),CommandUI.Amber);
             ResultMetric(812,"KALAN BÜTÇE",session.Money.ToString(),CommandUI.White);
@@ -148,3 +154,7 @@ namespace Pixamor
         }
     }
 }
+
+
+
+
