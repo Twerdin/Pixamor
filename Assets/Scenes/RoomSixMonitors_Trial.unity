@@ -2788,8 +2788,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 759755194}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 1.5500001, y: 1.4749999, z: -0.0149999745}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.011, y: 1.475, z: 0.721}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -5210,7 +5210,7 @@ Transform:
   m_GameObject: {fileID: 1659313980}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.1000001, y: 1.9, z: -0.0149999745}
+  m_LocalPosition: {x: -0.011, y: 1.825, z: 0.27100003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5926,7 +5926,7 @@ Transform:
   m_GameObject: {fileID: 1997282968}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.6, z: 0}
+  m_LocalPosition: {x: 0, y: 1.48, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6072,13 +6072,13 @@ CharacterController:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Height: 1.75
+  m_Height: 1.65
   m_Radius: 0.18
   m_SlopeLimit: 45
   m_StepOffset: 0.2
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0.875, z: 0}
+  m_Center: {x: 0, y: 0.825, z: 0}
 --- !u!4 &2021376397
 Transform:
   m_ObjectHideFlags: 0
@@ -6087,8 +6087,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2021376394}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -1.7099999, y: 0.04, z: -0.0149999745}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.011, y: 0.04, z: -1.079}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -6110,10 +6110,11 @@ MonoBehaviour:
   viewCamera: {fileID: 1997282969}
   monitor: {fileID: 854384161}
   crises: {fileID: 1287058782}
-  walkSpeed: 3
+  walkSpeed: 1.7
   monitorViewDistance: 1.5
   monitorHalfWidth: 0.99
   mouseSensitivity: 0.1
+  viewTransitionDuration: 0.45
 --- !u!1 &2115287003
 GameObject:
   m_ObjectHideFlags: 0

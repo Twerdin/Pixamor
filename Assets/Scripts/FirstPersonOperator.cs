@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -14,6 +15,9 @@ namespace Pixamor
         [SerializeField] private float monitorHalfWidth = 3f;
         [SerializeField] private float mouseSensitivity = .10f;
         public bool IsUsingMonitor { get; private set; }
+        public bool IsChangingView { get; private set; }
+        [SerializeField, Min(.05f)] private float viewTransitionDuration = .45f;
+        private Coroutine viewTransition;
         public bool UIBlocked { get; private set; }
         public float MouseSensitivity
         {
@@ -42,6 +46,16 @@ namespace Pixamor
             monitorHalfWidth = width * .55f;
         }
 
+        public void ConfigureRoomScale(float height, float eyeHeight, float speed)
+        {
+            var controller=GetComponent<CharacterController>();
+            controller.height=height;
+            controller.center=new Vector3(0,height*.5f,0);
+            controller.stepOffset=.2f;
+            viewCamera.transform.localPosition=new Vector3(0,eyeHeight,0);
+            walkSpeed=speed;
+        }
+
         private void Start()
         {
             body = GetComponent<CharacterController>();
@@ -52,12 +66,11 @@ namespace Pixamor
             CaptureMouse(!UIBlocked);
         }
 
-        private bool InReach => Vector3.Distance(transform.position + Vector3.up * 1.65f,
-            monitor.position) <= 5f;
+        private bool InReach => Vector3.Distance(viewCamera.transform.position,monitor.position) <= 5f;
 
         private void Update()
         {
-            if (UIBlocked) return;
+            if (UIBlocked || IsChangingView) return;
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
             if (keyboard == null || mouse == null) return;
@@ -105,13 +118,11 @@ namespace Pixamor
 
         public void EnterMonitor()
         {
-            if (!Application.isPlaying || UIBlocked || IsUsingMonitor || viewCamera == null || monitor == null) return;
+            if (!Application.isPlaying || UIBlocked || IsUsingMonitor || IsChangingView || viewCamera == null || monitor == null) return;
             IsUsingMonitor = true;
             // Oyuncuyu taşımadan kamerayı okuma konumuna getiririz.
-            viewCamera.transform.SetPositionAndRotation(monitor.position - monitor.forward * monitorViewDistance,
-                monitor.rotation);
-            viewCamera.fieldOfView = Mathf.Max(48f,
-                2f * Mathf.Atan(monitorHalfWidth / (monitorViewDistance * viewCamera.aspect)) * Mathf.Rad2Deg);
+            BeginViewTransition(monitor.position - monitor.forward * monitorViewDistance, monitor.rotation,
+                Mathf.Max(48f, 2f * Mathf.Atan(monitorHalfWidth / (monitorViewDistance * viewCamera.aspect)) * Mathf.Rad2Deg));
             CaptureMouse(false);
         }
 
@@ -119,10 +130,37 @@ namespace Pixamor
         {
             crises.CloseCard();
             IsUsingMonitor = false;
-            viewCamera.transform.localPosition = eyePosition;
-            viewCamera.transform.localRotation = Quaternion.Euler(pitch, 0, 0);
-            viewCamera.fieldOfView = walkFov;
-            CaptureMouse(true);
+            BeginViewTransition(transform.TransformPoint(eyePosition),
+                transform.rotation * Quaternion.Euler(pitch,0,0),walkFov);
+        }
+
+        private void BeginViewTransition(Vector3 position, Quaternion rotation, float fov)
+        {
+            if(viewTransition!=null)StopCoroutine(viewTransition);
+            viewTransition=StartCoroutine(BlendView(position,rotation,fov));
+        }
+
+        private IEnumerator BlendView(Vector3 position, Quaternion rotation, float fov)
+        {
+            IsChangingView=true;
+            var startPosition=viewCamera.transform.position;
+            var startRotation=viewCamera.transform.rotation;
+            float startFov=viewCamera.fieldOfView;
+            float elapsed=0;
+            // Yavaş başlar, hızlanır ve hedefe yaklaşırken yeniden yavaşlar.
+            while(elapsed<viewTransitionDuration)
+            {
+                elapsed+=Time.unscaledDeltaTime;
+                float t=Mathf.SmoothStep(0,1,elapsed/viewTransitionDuration);
+                viewCamera.transform.SetPositionAndRotation(Vector3.Lerp(startPosition,position,t),Quaternion.Slerp(startRotation,rotation,t));
+                viewCamera.fieldOfView=Mathf.Lerp(startFov,fov,t);
+                yield return null;
+            }
+            viewCamera.transform.SetPositionAndRotation(position,rotation);
+            viewCamera.fieldOfView=fov;
+            IsChangingView=false;
+            viewTransition=null;
+            CaptureMouse(!UIBlocked && !IsUsingMonitor);
         }
 
         public void ConfigureFlow(GameFlowController controller)
@@ -139,6 +177,9 @@ namespace Pixamor
         public void ResetForShift()
         {
             if (body == null) return;
+            if(viewTransition!=null)StopCoroutine(viewTransition);
+            viewTransition=null;
+            IsChangingView=false;
             crises.CloseCard();
             body.enabled = false;
             transform.SetPositionAndRotation(spawnPosition,spawnRotation);
@@ -162,7 +203,7 @@ namespace Pixamor
             if (!focus) CaptureMouse(false);
         }
 
-        private void OnDisable() { CaptureMouse(false); }
+        private void OnDisable() { if(viewTransition!=null)StopCoroutine(viewTransition); viewTransition=null; IsChangingView=false; CaptureMouse(false); }
 
         private void OnGUI()
         {

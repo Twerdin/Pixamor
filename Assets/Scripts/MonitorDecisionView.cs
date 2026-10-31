@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,7 +21,7 @@ namespace Pixamor
                 BuildOption(panel,crisis,i,24+i*510);
             var close=ui.Button(panel,"ReturnToMap",24,626,1504,36,crises.CloseCard,new Color(0,0,0,.12f));
             var closeLabel=ui.Text(close.transform,"‹  Haritaya dön. Kararı daha sonra ver.",0,0,1504,36,25,CommandUI.Muted);
-            closeLabel.alignment=TextAnchor.MiddleCenter;
+            closeLabel.alignment=TextAlignmentOptions.Center;
         }
 
         private void BuildOption(Transform parent,ActiveCrisis crisis,int index,float x)
@@ -35,9 +36,9 @@ namespace Pixamor
             ui.Text(card.transform,"›",406,12,54,46,34,accent,"strong");
             var title=ui.Text(card.transform,option.Title,22,64,440,83,32,
                 affordable ? CommandUI.White : CommandUI.Muted,"strong");
-            title.resizeTextForBestFit=true;
-            title.resizeTextMinSize=28;
-            title.resizeTextMaxSize=32;
+            title.enableAutoSizing=true;
+            title.fontSizeMin=28;
+            title.fontSizeMax=32;
             ui.Caption(card.transform,"BÜTÇE MALİYETİ",22,161,440,28);
             ui.Number(card.transform,option.Cost==0?"Ücretsiz":"−"+option.Cost,22,189,440,77,
                 option.Cost==0?56:70,affordable ? CommandUI.White : CommandUI.Red);
@@ -48,7 +49,7 @@ namespace Pixamor
                 new Color(accent.r*.15f,accent.g*.15f,accent.b*.15f));
             var text=ui.Text(action,affordable ? option.IsIntervention ? "MÜDAHALEYİ UYGULA  →" : "MÜDAHALE ETME" : "YETERSİZ BÜTÇE / KİLİTLİ",
                 6,3,428,28,23,affordable ? accent : CommandUI.Red,"strong");
-            text.alignment=TextAnchor.MiddleCenter;
+            text.alignment=TextAlignmentOptions.Center;
         }
 
         private void BuildImpact(Transform parent,string icon,string title,int delta,int current,float x,float y)
@@ -79,7 +80,7 @@ namespace Pixamor
                 currentView=null;
             },new Color(.09f,.28f,.26f));
             var text=ui.Text(restart.transform,"YENİ VARDİYA BAŞLAT  →",0,12,1488,44,32,CommandUI.Teal,"strong");
-            text.alignment=TextAnchor.MiddleCenter;
+            text.alignment=TextAlignmentOptions.Center;
         }
 
         private void ReportStat(Transform parent,float x,string title,string value,Color color)

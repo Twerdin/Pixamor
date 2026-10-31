@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -23,7 +24,7 @@ namespace Pixamor
         private RectTransform content;
         private CanvasGroup contentFade;
         private GraphicRaycaster raycaster;
-        private Text budget, income, people, climate, clock, clockState, status, news;
+        private TMP_Text budget, income, people, climate, clock, clockState, status, news;
         private Image peopleBar, climateBar, clockBar;
         private Image statusLight;
         private string currentView;
@@ -103,12 +104,12 @@ namespace Pixamor
             ui.Caption(root,"KÜRESEL KRİZ KOORDİNASYON MERKEZİ",101,84,850);
             statusLight = ui.Panel(root,"OnlineLight",38,132,10,10,CommandUI.Teal).GetComponent<Image>();
             status = ui.Text(root,"",62,117,1050,46,25,CommandUI.Teal,"strong");
-            status.alignment = TextAnchor.MiddleLeft;
+            status.alignment = TextAlignmentOptions.MidlineLeft;
             BuildMetrics(root);
             var pauseButton = ui.Button(root,"PauseShortcut",695,30,500,48,()=>flow?.Pause(),new Color(0,0,0,.15f));
             pauseButton.GetComponent<Outline>().enabled=false;
             var help = ui.Caption(pauseButton.transform,"ESC  DURAKLAT  /  E  AYRIL",0,8,500);
-            help.alignment = TextAnchor.MiddleCenter;
+            help.alignment = TextAlignmentOptions.Center;
         }
 
         private RectTransform Metric(Transform root,string title,string icon,float x,Color color)
@@ -137,11 +138,11 @@ namespace Pixamor
 
             var time = ui.Rect(root,"ShiftClock",1240,24,324,152);
             var timeTitle = ui.Caption(time,"VARDİYA SÜRESİ",0,0,324);
-            timeTitle.alignment = TextAnchor.MiddleRight;
+            timeTitle.alignment = TextAlignmentOptions.MidlineRight;
             clock = ui.Number(time,"06:00",0,28,324,100,90);
-            clock.alignment = TextAnchor.UpperRight;
+            clock.alignment = TextAlignmentOptions.TopRight;
             clockState = ui.Text(time,"CANLI",0,126,324,26,21,CommandUI.Teal,"strong");
-            clockState.alignment = TextAnchor.MiddleRight;
+            clockState.alignment = TextAlignmentOptions.MidlineRight;
             clockBar = ui.Bar(time,0,119,324,3,CommandUI.Teal);
         }
 
@@ -156,7 +157,7 @@ namespace Pixamor
         private void Update()
         {
             if (screenRoot == null) return;
-            raycaster.enabled = player.IsUsingMonitor && !player.UIBlocked;
+            raycaster.enabled = player.IsUsingMonitor && !player.UIBlocked && !player.IsChangingView;
             budget.text = session.Money.ToString();
             income.text = session.State == SessionState.Running
                 ? $"+{session.IncomeAmount} / {Mathf.CeilToInt(session.TimeUntilIncome)} sn" : "VARDİYA BİTTİ";

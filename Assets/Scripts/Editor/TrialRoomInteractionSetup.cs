@@ -44,7 +44,8 @@ namespace Pixamor.Editor
                 var tableCollider=desk.GetComponent<Collider>();
                 // En yüksek kenarlık yerine, ayağın altındaki gerçek tabla yüzeyini ölç.
                 if(tableCollider.Raycast(new Ray(new Vector3(bounds.max.x-.26f,bounds.max.y+1,bounds.center.z),Vector3.down),out var hit,2))tableTop=hit.point.y;
-                rig.SetPositionAndRotation(new Vector3(bounds.max.x-.35f,tableTop+.675f,bounds.center.z),Quaternion.Euler(0,90,0));
+                // Kullanıcının belirlediği istasyon konumu ve dönüşü.
+                rig.SetPositionAndRotation(new Vector3(-.011f,1.475f,.721f),Quaternion.identity);
                 var metal=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/RoomTrial/Bezel.mat");
                 var previews=new System.Collections.Generic.List<Renderer>();
                 for(int row=0;row<2;row++)for(int col=0;col<3;col++)
@@ -64,7 +65,8 @@ namespace Pixamor.Editor
                 Beam(rig,"HorizontalSeam",new Vector3(0,0,-.065f),new Vector3(1.8f,.006f,.006f),metal);
                 var mount=rig.Find("InteractiveScreenMount");if(mount==null){mount=new GameObject("InteractiveScreenMount").transform;mount.SetParent(rig,false);}mount.localPosition=new Vector3(0,0,-.055f);
                 var actor=roots.Single(r=>r.name=="TrialPlayer");
-                actor.transform.SetPositionAndRotation(new Vector3(bounds.min.x-.65f,.04f,bounds.center.z),Quaternion.Euler(0,90,0));
+                var spawn=rig.position-rig.forward*1.8f; spawn.y=.04f;
+                actor.transform.SetPositionAndRotation(spawn,rig.rotation);
                 var walker=actor.GetComponent<RoomTrialWalker>();if(walker!=null)walker.enabled=false;
                 var camera=actor.GetComponentInChildren<Camera>();camera.transform.localRotation=Quaternion.identity;
                 var player=actor.GetComponent<FirstPersonOperator>();if(player==null)player=actor.AddComponent<FirstPersonOperator>();
@@ -73,8 +75,9 @@ namespace Pixamor.Editor
                 var crises=managerObject.GetComponent<CrisisManager>()??managerObject.AddComponent<CrisisManager>();
                 var monitor=managerObject.GetComponent<MonitorPrototype>()??managerObject.AddComponent<MonitorPrototype>();
                 player.Configure(camera,mount,crises);player.ConfigureMonitorView(1.5f,1.8f);
+                player.ConfigureRoomScale(1.65f,1.48f,1.7f);
                 monitor.Configure(camera,mount,player);monitor.ConfigureSurface(new Vector2(1.8f,1.05f),previews.ToArray());
-                var glow=roots.Single(r=>r.name=="DeskGlow");glow.transform.position=new Vector3(bounds.max.x-.8f,1.9f,bounds.center.z);
+                var glow=roots.Single(r=>r.name=="DeskGlow");glow.transform.position=rig.position-rig.forward*.45f+Vector3.up*.35f;
                 EditorUtility.SetDirty(player);EditorUtility.SetDirty(monitor);
                 EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);AssetDatabase.SaveAssets();
                 Debug.Log("Masa üzerindeki 6 ekran oyun sistemine bağlandı.");

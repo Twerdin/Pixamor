@@ -11,6 +11,7 @@ namespace Pixamor.Editor
             var importer = (TextureImporter)assetImporter;
             importer.textureType = TextureImporterType.Default;
             importer.mipmapEnabled = false;
+            importer.filterMode = UnityEngine.FilterMode.Bilinear;
             importer.maxTextureSize = assetPath.EndsWith("WorldMap.png") ? 4096 : 256;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.alphaIsTransparency = !assetPath.EndsWith("WorldMap.png");

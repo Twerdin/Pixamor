@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -20,7 +21,7 @@ namespace Pixamor
         private CommandUI ui;
         private GameObject overlay;
         private RectTransform body;
-        private Text subtitle;
+        private TMP_Text subtitle;
         private CanvasGroup fade;
         private RawImage backdrop;
         private GameScreen returnScreen;

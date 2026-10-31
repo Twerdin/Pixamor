@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,7 +19,7 @@ namespace Pixamor
         public static readonly Color Amber = Hex(0xF3C277);
         public static readonly Color Red = Hex(0xFF7A79);
         public static readonly Color Blue = Hex(0x81BBEE);
-        private readonly Font regular, semibold, display, mono;
+        private readonly TMP_FontAsset regular, semibold, display, mono;
         private readonly List<UnityEngine.Object> owned = new List<UnityEngine.Object>();
         private readonly Dictionary<string, Sprite> icons = new Dictionary<string, Sprite>();
         public Sprite Rounded { get; }
@@ -27,14 +28,24 @@ namespace Pixamor
         public CommandUI()
         {
             var fallback = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            regular = Resources.Load<Font>("CommandUI/Fonts/Barlow-Regular") ?? fallback;
-            semibold = Resources.Load<Font>("CommandUI/Fonts/Barlow-SemiBold") ?? fallback;
-            display = Resources.Load<Font>("CommandUI/Fonts/BarlowCondensed-SemiBold") ?? fallback;
-            mono = Resources.Load<Font>("CommandUI/Fonts/IBMPlexMono-Regular") ?? fallback;
+            regular = SdfFont(Resources.Load<Font>("CommandUI/Fonts/Barlow-Regular") ?? fallback);
+            semibold = SdfFont(Resources.Load<Font>("CommandUI/Fonts/Barlow-SemiBold") ?? fallback);
+            display = SdfFont(Resources.Load<Font>("CommandUI/Fonts/BarlowCondensed-SemiBold") ?? fallback);
+            mono = SdfFont(Resources.Load<Font>("CommandUI/Fonts/IBMPlexMono-Regular") ?? fallback);
             Rounded = Shape(false);
             Circle = Shape(true);
         }
 
+        private TMP_FontAsset SdfFont(Font source)
+        {
+            // SDF yazılar büyütülünce küçük bir harf resmini büyütmek yerine kenarı yeniden hesaplar.
+            var font=TMP_FontAsset.CreateFontAsset(source,90,9,UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA,2048,2048);
+            font.name=source.name+" SDF";
+            font.atlasTextures[0].filterMode=FilterMode.Bilinear;
+            font.TryAddCharacters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ÇĞİÖŞÜçğıöşü−→‹›/+:%.,!?() ");
+            owned.Add(font);
+            return font;
+        }
         public static Color Hex(int rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
 
         public RectTransform Rect(Transform parent, string name, float x, float y, float w, float h)
@@ -65,31 +76,32 @@ namespace Pixamor
             return rect;
         }
 
-        public Text Text(Transform parent, string value, float x, float y, float w, float h, int size = 28,
+        public TMP_Text Text(Transform parent, string value, float x, float y, float w, float h, int size = 28,
             Color? color = null, string role = "body")
         {
-            var text = Rect(parent, "Text", x, y, w, h).gameObject.AddComponent<Text>();
+            var text = Rect(parent, "Text", x, y, w, h).gameObject.AddComponent<TextMeshProUGUI>();
             text.font = role == "display" ? display : role == "mono" ? mono : role == "strong" ? semibold : regular;
             text.text = value;
             text.fontSize = size;
             text.color = color ?? White;
-            text.supportRichText = false;
+            text.richText = false;
             text.raycastTarget = false;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
-            if (role == "mono") text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.alignment = TextAlignmentOptions.TopLeft;
+            text.overflowMode = TextOverflowModes.Truncate;
+            if (role == "mono") text.overflowMode = TextOverflowModes.Overflow;
             return text;
         }
 
-        public Text Caption(Transform parent, string value, float x, float y, float w, float h = 28,
+        public TMP_Text Caption(Transform parent, string value, float x, float y, float w, float h = 28,
             Color? color = null) => Text(parent, value, x, y, w, Mathf.Max(30,h), 22, color ?? Muted, "strong");
 
-        public Text Number(Transform parent, string value, float x, float y, float w, float h, int size = 68,
+        public TMP_Text Number(Transform parent, string value, float x, float y, float w, float h, int size = 68,
             Color? color = null)
         {
             var number = Text(parent,value,x,y,w,h,size,color,"display");
             // Display fontun satır yüksekliği büyük rakamları kesmemeli.
-            number.verticalOverflow = VerticalWrapMode.Overflow;
+            number.overflowMode = TextOverflowModes.Overflow;
             return number;
         }
 
@@ -137,7 +149,7 @@ namespace Pixamor
         {
             var rect = Panel(parent, "Badge", x, y, w, 38, new Color(color.r*.13f,color.g*.13f,color.b*.13f));
             var text = Text(rect,value,8,5,w-16,28,22,color,"strong");
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
         }
 
         public Image Bar(Transform parent, float x, float y, float width, float height, Color color,

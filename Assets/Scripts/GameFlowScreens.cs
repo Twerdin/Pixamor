@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using UnityEngine;
 using UnityEngine.UI;
@@ -71,7 +72,7 @@ namespace Pixamor
                 value=>AudioListener.volume=value,value=>Mathf.RoundToInt(value*100)+" %");
             SettingsSlider("FARE HASSASİYETİ",80,344,.03f,.3f,player.MouseSensitivity,
                 value=>player.MouseSensitivity=value,value=>(value/.1f).ToString("0.0")+" x");
-            Text animationLabel=null;
+            TMP_Text animationLabel=null;
             var toggle=ui.Button(body,"Animations",80,530,1440,78,()=>
             {
                 AnimationsEnabled=!AnimationsEnabled;
@@ -87,7 +88,7 @@ namespace Pixamor
         {
             ui.Text(body,label,x,y,1000,42,30,CommandUI.White,"strong");
             var number=ui.Text(body,format(value),1220,y,300,42,29,CommandUI.Teal,"mono");
-            number.alignment=TextAnchor.MiddleRight;
+            number.alignment=TextAlignmentOptions.MidlineRight;
             var rect=ui.Rect(body,"Slider",x,y+54,1440,66);
             var hitArea=rect.gameObject.AddComponent<Image>();
             hitArea.color=new Color(0,0,0,.001f);
