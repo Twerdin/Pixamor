@@ -33,6 +33,7 @@ namespace Pixamor
         // Gerçek arayüz daha sonra bu bildirimlere abone olabilir.
         public event Action Changed;
         public event Action<SessionState> Ended;
+        public event Action Restarted;
 
         // Kriz sayaçları ileride bu ortak oyun zamanını kullanacak.
         // Duraklatıldığında bu bildirim gönderilmez.
@@ -56,6 +57,7 @@ namespace Pixamor
             IsPaused = false;
             State = SessionState.Running;
             EndReason = string.Empty;
+            Restarted?.Invoke();
             CheckForLoss();
             Changed?.Invoke();
         }
