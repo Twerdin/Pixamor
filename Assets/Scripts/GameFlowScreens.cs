@@ -18,10 +18,10 @@ namespace Pixamor
         private void BuildMainMenu()
         {
             subtitle.text="OPERASYON TERMİNALİ / VARDİYA BAŞLANGICI";
-            ui.Text(body,"BİR DÜNYA.\nON İKİ KRİZ.\nTEK OPERATÖR.",80,34,920,350,88,CommandUI.White,"display");
+            ui.Text(body,"BİR DÜNYA.\nON ALTI KRİZ.\nTEK OPERATÖR.",80,34,920,350,88,CommandUI.White,"display");
             ui.Text(body,"Halkı koru. Kaynaklarını yönet.\nİklim dengesini ayakta tut.",80,418,860,100,34,CommandUI.Muted);
             MenuButton(body,"VARDİYAYI BAŞLAT  →",80,574,860,StartShift,true);
-            ui.Text(body,$"{FormatTime(session.RemainingTime)} VARDİYA   /   12 KRİZ   /   TEK ODA",80,682,890,38,25,CommandUI.Muted,"mono");
+            ui.Text(body,$"{FormatTime(session.RemainingTime)} VARDİYA   /   16 KRİZ   /   TEK ODA",80,682,890,38,25,CommandUI.Muted,"mono");
             var right=ui.Panel(body,"MenuActions",1040,68,480,588,new Color(.025f,.06f,.09f,.44f),true);
             ui.Icon(right,"Globe",28,28,70,CommandUI.Teal);
             ui.Caption(right,"DÜNYA SENİ BEKLİYOR",28,124,424,34,CommandUI.Teal);
@@ -50,9 +50,9 @@ namespace Pixamor
             subtitle.text="OPERATÖR KILAVUZU / KONTROLLER";
             ui.Text(body,"Dünyayı masandan koru.",80,10,1440,90,66,CommandUI.White,"display");
             HelpCard(80,135,"01 / MONİTÖRE YAKLAŞ","Globe","WASD ile yürü, fareyle bak. Monitöre yaklaş ve E ile ekranı kullan.");
-            HelpCard(830,135,"02 / MÜDAHALE SEÇ","Budget","Kriz işaretine tıkla. Maliyet ve etkileri karşılaştır. Kart açıkken bütün oyun sayaçları durur.");
+            HelpCard(830,135,"02 / MÜDAHALE SEÇ","Budget","Kriz işaretine tıkla. Maliyet ve etkileri karşılaştır. Kart açıkken zaman akar; diğer krizler de beklemez.");
             HelpCard(80,376,"03 / DENGEYİ KORU","People","Halk veya iklim sıfıra ulaşırsa kaybedersin. Para sıfırken ücretsiz seçenekleri kullanabilirsin.");
-            HelpCard(830,376,"04 / VARDİYAYI TAMAMLA","Clock","Her 60 saniyede bütçe gelir. Krizlere 40 saniyede cevap ver. Esc menüyü açar, E monitörden ayırır.");
+            HelpCard(830,376,"04 / VARDİYAYI TAMAMLA","Clock","Her 60 saniyede bütçe gelir. Krizlere 30 saniyede cevap ver. Esc menüyü açar, E monitörden ayırır.");
             MenuButton(body,"‹  Geri",80,652,1440,Back);
         }
 

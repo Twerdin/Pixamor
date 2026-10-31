@@ -25,7 +25,7 @@ namespace Pixamor
         public float RemainingTime { get; private set; }
         public float ElapsedTime { get; private set; }
         public float TimeUntilIncome => Mathf.Max(0f, incomeInterval - incomeTimer);
-        // Kartın ve menünün duraklatması bağımsızdır; biri kapanınca diğeri sürer.
+        // Afet kartları zamanı durdurmaz; yalnızca açıkça duraklatılan oyun saati durur.
         public bool IsPaused => gameplayPaused || IsMenuPaused;
         public bool IsMenuPaused { get; private set; }
         public SessionState State { get; private set; }

@@ -36,7 +36,7 @@ namespace Pixamor
         public CrisisType Type;
         // Harita eklendiğinde kullanılacak, sol üstten başlayan 0–1 konumu.
         public Vector2 MapPosition;
-        public float ResponseDuration = 40f;
+        public float ResponseDuration = 30f;
         public InterventionData[] Options;
         public InterventionData TimeoutResult;
     }

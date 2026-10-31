@@ -74,6 +74,7 @@ namespace Pixamor.Editor
                 var session=managerObject.GetComponent<GameSession>()??managerObject.AddComponent<GameSession>();
                 var crises=managerObject.GetComponent<CrisisManager>()??managerObject.AddComponent<CrisisManager>();
                 var monitor=managerObject.GetComponent<MonitorPrototype>()??managerObject.AddComponent<MonitorPrototype>();
+                crises.ConfigureTempo(); EditorUtility.SetDirty(crises);
                 player.Configure(camera,mount,crises);player.ConfigureMonitorView(1.5f,1.8f);
                 player.ConfigureRoomScale(1.65f,1.48f,1.7f);
                 monitor.Configure(camera,mount,player);monitor.ConfigureSurface(new Vector2(1.8f,1.05f),previews.ToArray());

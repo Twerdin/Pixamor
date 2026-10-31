@@ -175,7 +175,7 @@ namespace Pixamor
             RefreshStatus();
 
             string view = session.State != SessionState.Running ? "end:"+session.State :
-                crises.OpenCard != null ? "card:"+crises.OpenCard.Id : "operations";
+                crises.OpenCard != null ? "card:"+crises.OpenCard.Id+":"+session.Money+":"+session.Happiness+":"+session.Climate+":"+crises.Active.Count : "operations";
             if (view == "operations") foreach(var crisis in crises.Active) view += ":"+crisis.Id;
             if (currentView != view)
             {
@@ -204,7 +204,7 @@ namespace Pixamor
             status.text = !running ? "VARDİYA RAPORU HAZIR" : critical
                 ? session.HasHappinessWarning && session.HasClimateWarning ? "KRİTİK / HALK VE İKLİM" :
                     session.HasHappinessWarning ? "KRİTİK / HALK PROTESTOLARI" : "KRİTİK / İKLİM DENGESİ"
-                : session.IsPaused ? "KARAR MODU / ZAMAN DURDU"
+                : session.IsPaused ? "VARDİYA DURAKLATILDI"
                 : crises.Active.Count > 0 ? $"{crises.Active.Count} AKTİF KRİZ / MÜDAHALE BEKLİYOR" : "CANLI / TÜM BÖLGELER İZLENİYOR";
         }
 

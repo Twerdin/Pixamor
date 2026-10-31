@@ -25,9 +25,9 @@ partial class Check
         manager.GetType().GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(manager, null);
         var result = new PolicyResult { MinimumMoney = session.Money };
 
-        for (int i = 0; i < 12 && session.State == SessionState.Running; i++)
+        for (int i = 0; i < 16 && session.State == SessionState.Running; i++)
         {
-            while (session.ElapsedTime < 5 + 25 * i + delay && session.State == SessionState.Running)
+            while (session.ElapsedTime < 5 + 20 * i + delay && session.State == SessionState.Running)
             {
                 Tick(session, 1);
                 result.PeakActive = Math.Max(result.PeakActive, manager.Active.Count);
@@ -64,7 +64,7 @@ partial class Check
         var second = SimulatePolicy((i, data) => 1);
         var free = SimulatePolicy((i, data) => 2);
         var mixed = SimulatePolicy((i, data) => i == 1 || i == 6 || i == 8 ? 0 : 1);
-        var delayed = SimulatePolicy((i, data) => i == 1 || i == 6 || i == 8 ? 0 : 1, 30);
+        var delayed = SimulatePolicy((i, data) => i == 1 || i == 6 || i == 8 ? 0 : 1, 25);
         Console.WriteLine("Pahalı tercih + bütçe yoksa ücretsiz: " + first);
         Console.WriteLine("Daima ikinci seçenek: " + second);
         Console.WriteLine("Daima ücretsiz: " + free);
@@ -72,24 +72,24 @@ partial class Check
         Assert(first.State == SessionState.Lost && first.Locked > 0, "Pahalı politika bütçeyi tüketir ve kaybeder");
         Assert(second.State == SessionState.Lost, "Daima ikinci seçeneğe basmak kaybettirir");
         Assert(free.State == SessionState.Lost, "Daima ücretsiz seçenek kaybettirir");
-        Assert(mixed.State == SessionState.Won && mixed.Handled == 12 && mixed.Missed == 0 && mixed.Locked == 0,
+        Assert(mixed.State == SessionState.Won && mixed.Handled == 16 && mixed.Missed == 0 && mixed.Locked == 0,
             "Karma rota bütün krizlere müdahale ederek kazanabilir");
-        Assert(mixed.Happiness >= 25 && mixed.Climate >= 25 && mixed.MinimumMoney <= 10,
+        Assert(mixed.Happiness >= 25 && mixed.Climate >= 25 && mixed.MinimumMoney <= 20,
             "Karma rota kaynakları korurken bütçeyi kullanmayı gerektirir");
-        Assert(delayed.State == SessionState.Won && delayed.Handled == 12 && delayed.PeakActive == 2,
+        Assert(delayed.State == SessionState.Won && delayed.Handled == 16 && delayed.PeakActive == 2,
             "İki kriz arasında öncelik seçilen gecikmeli rotayla da kazanılabilir");
         RunBoundaryChecks();
 
-        // 2^12 ücretli rota: kazanmak tek bir ezberlenmiş diziye bağlı olmasın.
+        // 2^16 ücretli rota: kazanmak tek bir ezberlenmiş diziye bağlı olmasın.
         int winningRoutes = 0;
-        for (int mask = 0; mask < (1 << 12); mask++)
+        for (int mask = 0; mask < (1 << 16); mask++)
         {
             int route = mask;
             var run = SimulatePolicy((i, data) => (route >> i) & 1);
-            if (run.State == SessionState.Won && run.Locked == 0 && run.Handled == 12) winningRoutes++;
+            if (run.State == SessionState.Won && run.Locked == 0 && run.Handled == 16) winningRoutes++;
         }
-        Console.WriteLine("Tüm krizlere müdahale eden kazanılabilir ücretli rota: " + winningRoutes + " / 4096");
-        Assert(winningRoutes > 1 && winningRoutes < 4096, "Birden fazla kazanılabilir rota var; her rota kazandırmıyor");
+        Console.WriteLine("Tüm krizlere müdahale eden kazanılabilir ücretli rota: " + winningRoutes + " / 65536");
+        Assert(winningRoutes > 1 && winningRoutes < 65536, "Birden fazla kazanılabilir rota var; her rota kazandırmıyor");
 
         foreach (var crisis in CrisisCatalog.Create())
         {

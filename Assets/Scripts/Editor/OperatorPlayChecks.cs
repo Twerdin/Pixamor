@@ -54,7 +54,7 @@ namespace Pixamor.Editor
                     manager.Open(manager.Active[0]);
                     flow.Pause();
                     flow.Resume();
-                    Require(game.IsPaused && manager.OpenCard!=null,"Menüden dönüş açık kartın zamanını başlattı.");
+                    Require(!game.IsPaused && manager.OpenCard!=null,"Menüden dönüş açık kartla saati devam ettirmedi.");
                     manager.CloseCard();
                     Require(!game.IsPaused,"Kart kapanınca oyun devam etmedi.");
                     game.ApplyResourceChanges(-100,0);
@@ -64,7 +64,7 @@ namespace Pixamor.Editor
                     Require(flow.Screen==GameScreen.Results && game.Climate==0,"İklim çöküşü ekranı açılmadı.");
                     flow.MainMenu();
                     Require(game.IsMenuPaused && game.ElapsedTime==0 && manager.Active.Count==0,"Ana menüye dönüş sıfırlanmadı.");
-                    Debug.Log("PLAY CHECKS PASS: menü, zaman, bütçe, fiziksel ekran ışını, kart duraklatması ve iki kayıp ekranı.");
+                    Debug.Log("PLAY CHECKS PASS: menü, zaman, bütçe, fiziksel ekran ışını, kart açıkken zaman akışı ve iki kayıp ekranı.");
                     pending=null;
                 }
             };

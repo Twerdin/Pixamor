@@ -3982,7 +3982,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Pixamor.CrisisManager
   firstCrisisTime: 5
-  spawnInterval: 25
 --- !u!114 &1287058783
 MonoBehaviour:
   m_ObjectHideFlags: 0

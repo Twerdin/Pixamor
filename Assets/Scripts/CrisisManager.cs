@@ -8,7 +8,9 @@ namespace Pixamor
     public class CrisisManager : MonoBehaviour
     {
         [SerializeField, Min(0f)] private float firstCrisisTime = 5f;
-        [SerializeField, Min(1f)] private float spawnInterval = 25f;
+        // Sabit prototip temposu eski sahnelerin kayıtlı 25 saniyesinden etkilenmez.
+        private const float spawnInterval = 20f;
+        public void ConfigureTempo() { firstCrisisTime=5f; }
 
         private GameSession session;
         private CrisisData[] catalog;
@@ -56,7 +58,7 @@ namespace Pixamor
 
         private void Advance(float step)
         {
-            // Kendi Update sayacımız yok: kart açılınca ortak saatle birlikte dururuz.
+            // Karar kartı ortak oyun saatini durdurmaz.
             float now = session.ElapsedTime;
             while (session.State == SessionState.Running)
             {
@@ -97,7 +99,7 @@ namespace Pixamor
                 return false;
 
             OpenCard = crisis;
-            session.SetPaused(true);
+
             return true;
         }
 
@@ -105,7 +107,7 @@ namespace Pixamor
         {
             if (OpenCard == null) return;
             OpenCard = null;
-            session.SetPaused(false);
+
         }
 
         public bool Choose(int optionIndex)
@@ -132,7 +134,7 @@ namespace Pixamor
             else MissedCount++;
 
             LastResult = (timedOut ? "Süre doldu! " : "") + result.Result;
-            CloseCard();
+            if (OpenCard == crisis) CloseCard();
             // Sayaç ve sayılar, bitiş bildirimi gönderilmeden önce güncellenir.
             session.TryApplyIntervention(result.Cost, result.HappinessChange, result.ClimateChange);
         }

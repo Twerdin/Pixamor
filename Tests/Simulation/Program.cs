@@ -21,32 +21,30 @@ partial class Check {
  static void Call(GameSession g,string method)=>typeof(GameSession).GetMethod(method,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(g,null);
  static void Assert(bool ok,string name) { if(!ok) throw new Exception(name); Console.WriteLine("PASS: "+name); }
  static void Tick(GameSession g,float seconds) { UnityEngine.Time.deltaTime=seconds; Call(g,"Update"); Call(g,"LateUpdate"); }
+ static void CreateSimulation(out GameSession g,out CrisisManager m) {
+  g=new GameSession();UnityEngine.MonoBehaviour.Session=g;g.RestartSession();m=new CrisisManager();
+  m.GetType().GetMethod("Awake",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(m,null);
+  m.GetType().GetMethod("OnEnable",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(m,null);
+ }
  static void RunCrises() {
-  var g = new GameSession(); UnityEngine.MonoBehaviour.Session = g; g.RestartSession();
-  var m = new CrisisManager(); typeof(CrisisManager).GetMethod("Awake",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(m,null);
-  typeof(CrisisManager).GetMethod("OnEnable",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(m,null);
-  int spawnNotifications=0; m.CrisisSpawned += _ => spawnNotifications++; var data=CrisisCatalog.Create(); Assert(data.Length==12,"12 authored crises");
-  foreach(var d in data) Assert(d.Options.Length==3 && d.Options[2].Cost==0 && d.ResponseDuration==40,"Catalog: three options, free fallback, 40 seconds");
-  Tick(g,4); Assert(m.Active.Count==0,"No crisis before 5 seconds"); Tick(g,1); Assert(m.Active.Count==1 && spawnNotifications==1,"First crisis sends one notification");
-  var first=m.Active[0]; Assert(m.Open(first) && g.IsPaused,"Opening card pauses session");
-  Tick(g,100); Assert(g.ElapsedTime==5 && m.SecondsLeft(first)==40 && g.Money==60 && spawnNotifications==1,"Card freezes crises, shift, budget and new notifications");
-  m.CloseCard(); Assert(!g.IsPaused && m.Active.Count==1,"Closing card keeps crisis active");
-  Tick(g,25); Assert(m.Active.Count==2 && m.SecondsLeft(first)==15,"Second crisis overlaps at 30 seconds");
-  m.Open(first); Assert(m.Choose(0) && g.Money==35 && m.HandledCount==1 && !g.IsPaused,"Decision resolves and resumes");
-  Assert(!m.Choose(0) && !m.Open(first) && g.Money==35,"Duplicate decision and resolved card rejected");
-  g.RestartSession(); Assert(m.Active.Count==0 && m.HandledCount==0 && m.MissedCount==0,"Restart resets crises and counts");
-  Tick(g,45); Assert(m.MissedCount==1 && g.Happiness==55 && g.Climate==65 && m.Active.Count==1,"Timeout applies exactly once at 45 seconds");
-  g.RestartSession(); Tick(g,5); g.TryApplyIntervention(60,0,0); m.Open(m.Active[0]);
-  Assert(!m.Choose(0) && m.OpenCard!=null && g.Money==0,"Unaffordable option leaves card open");
-  Assert(m.Choose(2) && m.MissedCount==1 && g.Happiness==55 && !g.IsPaused,"Free choice at zero money counts as ignored");
-  g.RestartSession();
-  for(int i=0;i<12;i++) { Tick(g,i==0?5:25); Assert(m.Active.Count==1,"Scheduled crisis "+(i+1)); m.Open(m.Active[0]); Assert(m.Choose(i==1 || i==6 || i==8 ? 0 : 1),"Affordable mixed choice "+(i+1)); }
-  Tick(g,80); Assert(g.State==SessionState.Won && m.HandledCount==12 && m.MissedCount==0,"Full shift can be won with balanced decisions");
-  g.RestartSession();
-  for(int i=0;i<12 && g.State==SessionState.Running;i++) {Tick(g,i==0?5:25); if(m.Active.Count>0) {m.Open(m.Active[0]); m.Choose(2);} }
-  Assert(g.State==SessionState.Lost,"Always ignoring crises loses");
-  g.RestartSession(); Tick(g,360); Assert(g.State==SessionState.Lost && m.MissedCount>0,"Catch-up processes expirations and loss");
-  g.RestartSession(); Tick(g,5); m.Open(m.Active[0]); g.RestartSession(); Assert(!g.IsPaused && m.OpenCard==null && m.Active.Count==0,"Restart during card clears pause and selection");
+  CreateSimulation(out var g,out var m);
+  var data=CrisisCatalog.Create();Assert(data.Length==16,"16 yazılmış afet");
+  foreach(var d in data)Assert(d.Options.Length==3 && d.Options[2].Cost==0 && d.ResponseDuration==30,"Üç seçenek, ücretsiz çıkış, 30 saniye");
+  Tick(g,4);Assert(m.Active.Count==0,"5. saniyeden önce afet yok");Tick(g,1);
+  var first=m.Active[0];Assert(m.Open(first) && !g.IsPaused,"Kart açılması zamanı durdurmaz");
+  Tick(g,20);Assert(g.ElapsedTime==25 && m.Active.Count==2 && m.OpenCard==first && m.SecondsLeft(first)==10,"Açık kartta zaman ve ikinci afet ilerler");
+  m.CloseCard();m.Open(m.Active[1]);var second=m.OpenCard;
+  Tick(g,10);Assert(first.IsResolved && m.MissedCount==1 && m.OpenCard==second && g.Happiness==55,"Diğer afetin süresi dolunca mevcut kart korunur");
+  Tick(g,20);Assert(second.IsResolved && m.OpenCard==null && m.MissedCount==2,"Açık kartın süresi dolunca ceza bir kez uygulanır ve kart kapanır");
+  Assert(!m.Choose(0) && !m.Open(first),"Süresi dolan krize karar verilemez");
+  int missed=m.MissedCount;Tick(g,1);Assert(m.MissedCount==missed,"Aynı kaçırma iki kez sayılmaz");
+  g.RestartSession();Tick(g,5);g.TryApplyIntervention(60,0,0);m.Open(m.Active[0]);
+  Assert(!m.Choose(0) && m.OpenCard!=null && g.Money==0,"Yetersiz bütçe kartı kapatmaz");
+  Assert(m.Choose(2) && m.MissedCount==1,"Ücretsiz seçenek kullanılabilir");
+  g.RestartSession();for(int i=0;i<16;i++){Tick(g,i==0?5:20);var crisis=m.Active[0];m.Open(crisis);int cost=crisis.Data.Options[i==1||i==6||i==8?0:1].Cost;int money=g.Money;Assert(m.Choose(i==1||i==6||i==8?0:1) && g.Money==money-cost,"Dengeli karar "+i);Assert(!m.Choose(0) && !m.Open(crisis),"Karar tek kez uygulanır "+i);}
+  Tick(g,55);Assert(g.State==SessionState.Won && m.HandledCount==16 && m.MissedCount==0,"16 krizli vardiya kazanılabilir");
+  g.RestartSession();Tick(g,360);Assert(g.State==SessionState.Lost && m.MissedCount>0,"Uzun karede süre aşımı ve kayıp işlenir");
+  g.RestartSession();Tick(g,5);m.Open(m.Active[0]);g.RestartSession();Assert(m.OpenCard==null && m.Active.Count==0 && !g.IsPaused,"Yeniden başlatma açık krizi temizler");
  }
  static void Main() { RunBalancePolicies(); RunCrises();
   var g=new GameSession(); g.RestartSession();
@@ -66,6 +64,3 @@ partial class Check {
   g.RestartSession(); g.ApplyResourceChanges(-46,-46); Assert(g.HasHappinessWarning && g.HasClimateWarning,"Warnings below 25");
  }
 }
-
-
-
