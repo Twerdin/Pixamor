@@ -7,11 +7,14 @@ using UnityEngine.UI;
 
 namespace Pixamor
 {
-    // Geçici fiziksel monitör ve World Space ekranını birlikte kurar.
-    // Modelci monitörü hazırladığında ekran Canvas'ı yeni modele taşınabilir.
+    // Sahnedeki hazır monitörün ekranında oyun arayüzünü çalıştırır.
+    // Oda ve modeller yalnızca editördeki Odayı Kur menüsünden hazırlanır.
     [RequireComponent(typeof(GameSession), typeof(CrisisManager))]
     public class MonitorPrototype : MonoBehaviour
     {
+        [SerializeField] private Camera operatorCamera;
+        [SerializeField] private Transform screenMount;
+        [SerializeField] private FirstPersonOperator player;
         private GameSession session;
         private CrisisManager crises;
         private GameObject prototypeRoot;
@@ -20,12 +23,26 @@ namespace Pixamor
         private Font font;
         private Texture2D map;
         private Camera screenCamera;
+        private GraphicRaycaster screenRaycaster;
         private string viewKey;
-        private readonly List<Material> materials = new List<Material>();
         private readonly List<Action> refreshers = new List<Action>();
+
+        public void Configure(Camera camera, Transform screen, FirstPersonOperator controller)
+        {
+            operatorCamera = camera;
+            screenMount = screen;
+            player = controller;
+        }
 
         private void Start()
         {
+            if (operatorCamera == null || screenMount == null || player == null)
+            {
+                Debug.LogError("Monitör bağlantıları eksik. Play modundan çıkıp " +
+                    "İklim Operatörü > Odayı Kur menüsünü kullan.", this);
+                enabled = false;
+                return;
+            }
             session = GetComponent<GameSession>();
             crises = GetComponent<CrisisManager>();
             // Eski ekran üstü çizimin fiziksel monitörü örtmesini önler.
@@ -37,47 +54,9 @@ namespace Pixamor
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             map = CrisisMapTexture.Create();
             prototypeRoot = new GameObject("MonitorPrototype_Runtime");
-            BuildPhysicalMonitor();
+            screenCamera = operatorCamera;
             BuildScreen();
             EnsureInput();
-        }
-
-        private void BuildPhysicalMonitor()
-        {
-            // Bunlar model yerine kullanılan basit bloklar; hareket sistemi yok.
-            Block("MonitorGovdesi", new Vector3(0, 1.8f, .13f), new Vector3(4.56f, 3.04f, .22f), new Color(.06f,.07f,.08f));
-            Block("MonitorAyagi", new Vector3(0, .20f, .16f), new Vector3(.3f, .4f, .3f), Color.gray);
-            Block("Masa", new Vector3(0, -.03f, -.4f), new Vector3(6f, .15f, 2.4f), new Color(.22f,.17f,.12f));
-            Block("ArkaDuvar", new Vector3(0, 2f, 1.3f), new Vector3(12f, 7f, .2f), new Color(.16f,.19f,.22f));
-
-            var cameraObject = new GameObject("OperatorCamera");
-            cameraObject.transform.SetParent(prototypeRoot.transform);
-            cameraObject.transform.position = new Vector3(0, 1.8f, -5f);
-            screenCamera = cameraObject.AddComponent<Camera>();
-            screenCamera.clearFlags = CameraClearFlags.SolidColor;
-            screenCamera.backgroundColor = new Color(.025f,.035f,.045f);
-            screenCamera.depth = 100;
-            // Ekran, dar Game penceresinde de kadrajın içinde kalır.
-            FitCamera();
-        }
-
-        private void FitCamera()
-        {
-            float halfHeight = Mathf.Max(1.85f, 2.6f / screenCamera.aspect);
-            screenCamera.fieldOfView = 2f * Mathf.Atan(halfHeight / 5f) * Mathf.Rad2Deg;
-        }
-
-        private void Block(string title, Vector3 position, Vector3 scale, Color color)
-        {
-            var block = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            block.name = title;
-            block.transform.SetParent(prototypeRoot.transform);
-            block.transform.position = position;
-            block.transform.localScale = scale;
-            var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            material.color = color;
-            block.GetComponent<Renderer>().sharedMaterial = material;
-            materials.Add(material);
         }
 
         private void BuildScreen()
@@ -87,10 +66,11 @@ namespace Pixamor
             var canvas = canvasObject.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.worldCamera = screenCamera;
+            screenRaycaster = canvasObject.GetComponent<GraphicRaycaster>();
             var rect = canvasObject.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(1100, 720);
-            rect.position = new Vector3(0, 1.8f, -.001f);
-            rect.localScale = Vector3.one * .004f;
+            rect.SetPositionAndRotation(screenMount.position, screenMount.rotation);
+            rect.localScale = Vector3.one * .005f;
 
             Panel(rect, "ScreenBackground", 0, 0, 1100, 720, new Color(.035f,.065f,.085f));
             Label(rect, "İKLİM OPERATÖRÜ / KRİZ MASASI", 25, 15, 1050, 40, 26);
@@ -111,7 +91,8 @@ namespace Pixamor
         private void Update()
         {
             if (prototypeRoot == null) return;
-            FitCamera();
+            // Fare yalnızca monitör kullanımındayken fiziksel ekrana tıklayabilir.
+            screenRaycaster.enabled = player.IsUsingMonitor;
             int seconds = Mathf.CeilToInt(session.RemainingTime);
             string warning = (session.HasHappinessWarning ? "\nUYARI: Halk protestoları!" : "") +
                 (session.HasClimateWarning ? "\nUYARI: İklim kritik!" : "");
@@ -271,7 +252,6 @@ namespace Pixamor
         {
             if (prototypeRoot != null) Destroy(prototypeRoot);
             if (map != null) Destroy(map);
-            foreach (var material in materials) Destroy(material);
         }
     }
 }
