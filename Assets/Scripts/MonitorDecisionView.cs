@@ -9,7 +9,7 @@ namespace Pixamor
         {
             var crisis=crises.OpenCard;
             Color color=CommandUI.CrisisColor(crisis.Data.Type);
-            var panel=ui.Panel(content,"DecisionWorkspace",0,0,1552,676,CommandUI.Surface,true);
+            var panel=ui.Panel(content,"DecisionWorkspace",24,180,1552,676,new Color(.035f,.07f,.105f,.86f));
             ui.Icon(panel,crisis.Data.Type.ToString(),24,22,46,color);
             ui.Caption(panel,"MÜDAHALE DOSYASI / "+crisis.Data.Region,86,25,1080,34,color);
             ui.Badge(panel,"TÜM SAYAÇLAR DURDU",1230,22,298,CommandUI.Amber);
@@ -18,7 +18,7 @@ namespace Pixamor
 
             for(int i=0;i<crisis.Data.Options.Length;i++)
                 BuildOption(panel,crisis,i,24+i*510);
-            var close=ui.Button(panel,"ReturnToMap",24,626,1504,36,crises.CloseCard,CommandUI.Surface);
+            var close=ui.Button(panel,"ReturnToMap",24,626,1504,36,crises.CloseCard,new Color(0,0,0,.12f));
             var closeLabel=ui.Text(close.transform,"‹  Haritaya dön. Kararı daha sonra ver.",0,0,1504,36,25,CommandUI.Muted);
             closeLabel.alignment=TextAnchor.MiddleCenter;
         }
@@ -28,7 +28,7 @@ namespace Pixamor
             var option=crisis.Data.Options[index];
             bool affordable=session.CanAfford(option.Cost);
             Color accent=!affordable ? CommandUI.Muted : option.IsIntervention ? CommandUI.Teal : CommandUI.Amber;
-            var card=ui.Button(parent,"Intervention"+index,x,210,484,398,()=>crises.Choose(index));
+            var card=ui.Button(parent,"Intervention"+index,x,210,484,398,()=>crises.Choose(index),new Color(.06f,.12f,.17f,.68f));
             card.interactable=affordable;
             ui.Panel(card.transform,"Accent",0,18,3,362,accent);
             ui.Caption(card.transform,"SEÇENEK 0"+(index+1),22,18,334,28,accent);
@@ -64,7 +64,7 @@ namespace Pixamor
         {
             bool won=session.State==SessionState.Won;
             Color accent=won?CommandUI.Teal:CommandUI.Red;
-            var panel=ui.Panel(content,"ShiftReport",0,0,1552,676,CommandUI.Surface,true);
+            var panel=ui.Panel(content,"ShiftReport",24,180,1552,676,new Color(.035f,.07f,.105f,.88f));
             ui.Caption(panel,"VARDİYA SONU / OPERASYON RAPORU",32,28,1488);
             ui.Text(panel,won?"Görev tamamlandı.":"Kontrol kaybedildi.",32,96,1488,100,76,accent,"display");
             ui.Text(panel,session.EndReason,32,213,1488,70,34,CommandUI.Muted);

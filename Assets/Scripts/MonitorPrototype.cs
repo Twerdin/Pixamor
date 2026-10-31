@@ -75,52 +75,57 @@ namespace Pixamor
             // Fiziksel ekran genişliği 5.5 metre olarak korunur. Yalnızca içerik yenilenir.
             root.localScale = Vector3.one * (5.5f / 1600f);
             ui.Panel(root,"Background",0,0,1600,1040,CommandUI.Background);
-            ui.Panel(root,"BrandMark",24,28,60,60,CommandUI.Surface,true);
-            ui.Icon(root,"Globe",33,37,42,CommandUI.Teal);
-            ui.Text(root,"İKLİM OPERATÖRÜ",104,21,780,60,48,CommandUI.White,"display");
-            ui.Caption(root,"KÜRESEL KRİZ KOORDİNASYON MERKEZİ",106,84,820);
-            var badge = ui.Panel(root,"SystemStatus",1032,27,544,76,CommandUI.Surface,true);
-            statusLight = ui.Panel(badge,"OnlineLight",20,32,10,10,CommandUI.Teal).GetComponent<Image>();
-            status = ui.Text(badge,"",48,13,478,54,25,CommandUI.Teal,"strong");
+
+            // Harita artık bir panelin içinde değil, monitörün tamamının arka planıdır.
+            var mapImage = ui.Rect(root,"FullScreenWorldMap",0,0,1600,1040).gameObject.AddComponent<RawImage>();
+            mapImage.texture = worldMap;
+            mapImage.raycastTarget = false;
+            content = ui.Rect(root,"OperationWorkspace",0,0,1600,1040);
+            contentFade = content.gameObject.AddComponent<CanvasGroup>();
+
+            ui.Icon(root,"Globe",36,31,46,CommandUI.Teal);
+            ui.Text(root,"İKLİM OPERATÖRÜ",100,21,780,64,48,CommandUI.White,"display");
+            ui.Caption(root,"KÜRESEL KRİZ KOORDİNASYON MERKEZİ",101,84,850);
+            statusLight = ui.Panel(root,"OnlineLight",38,132,10,10,CommandUI.Teal).GetComponent<Image>();
+            status = ui.Text(root,"",62,117,1050,46,25,CommandUI.Teal,"strong");
             status.alignment = TextAnchor.MiddleLeft;
             BuildMetrics(root);
-            content = ui.Rect(root,"OperationWorkspace",24,292,1552,676);
-            contentFade = content.gameObject.AddComponent<CanvasGroup>();
-            ui.Caption(root,"OPERATÖR TERMİNALİ   /   01",26,998,700);
-            var help = ui.Caption(root,"FARE  SEÇ     /     E  AYRIL     /     ESC  İMLECİ BIRAK",720,998,856);
-            help.alignment = TextAnchor.MiddleRight;
+            var help = ui.Caption(root,"E  AYRIL  /  ESC  İMLECİ BIRAK",695,36,500);
+            help.alignment = TextAnchor.MiddleCenter;
         }
 
         private RectTransform Metric(Transform root,string title,string icon,float x,Color color)
         {
-            var panel = ui.Panel(root,title,x,128,376,144,CommandUI.Surface,true);
+            var panel = ui.Panel(root,title,x,858,300,164,new Color(.025f,.06f,.09f,.35f));
             ui.Icon(panel,icon,20,18,30,color);
-            ui.Caption(panel,title,62,18,294);
+            ui.Caption(panel,title,62,18,218);
             return panel;
         }
 
         private void BuildMetrics(Transform root)
         {
-            var wallet = Metric(root,"MÜDAHALE BÜTÇESİ","Budget",24,CommandUI.Amber);
+            var wallet = Metric(root,"BÜTÇE","Budget",36,CommandUI.Amber);
             budget = ui.Number(wallet,"60",20,48,160,80,74);
-            income = ui.Text(wallet,"",174,84,182,30,23,CommandUI.Muted);
-            income.alignment = TextAnchor.MiddleRight;
+            income = ui.Text(wallet,"",20,129,260,30,23,CommandUI.Muted);
 
-            var population = Metric(root,"HALK MUTLULUĞU","People",416,CommandUI.Teal);
+            var population = Metric(root,"HALK MUTLULUĞU","People",376,CommandUI.Teal);
             people = ui.Number(population,"70",20,48,155,80,74);
             ui.Text(population,"/ 100",172,87,120,30,25,CommandUI.Muted,"mono");
-            peopleBar = ui.Bar(population,20,126,336,6,CommandUI.Teal,true);
+            peopleBar = ui.Bar(population,20,142,260,4,CommandUI.Teal,true);
 
-            var environment = Metric(root,"İKLİM DENGESİ","Climate",808,CommandUI.Blue);
+            var environment = Metric(root,"İKLİM DENGESİ","Climate",716,CommandUI.Blue);
             climate = ui.Number(environment,"70",20,48,155,80,74);
             ui.Text(environment,"/ 100",172,87,120,30,25,CommandUI.Muted,"mono");
-            climateBar = ui.Bar(environment,20,126,336,6,CommandUI.Blue,true);
+            climateBar = ui.Bar(environment,20,142,260,4,CommandUI.Blue,true);
 
-            var time = Metric(root,"VARDİYA SÜRESİ","Clock",1200,CommandUI.Teal);
-            clock = ui.Number(time,"06:00",20,48,228,80,72);
-            clockState = ui.Text(time,"CANLI",240,91,116,25,21,CommandUI.Teal,"strong");
+            var time = ui.Rect(root,"ShiftClock",1240,24,324,152);
+            var timeTitle = ui.Caption(time,"VARDİYA SÜRESİ",0,0,324);
+            timeTitle.alignment = TextAnchor.MiddleRight;
+            clock = ui.Number(time,"06:00",0,28,324,100,90);
+            clock.alignment = TextAnchor.UpperRight;
+            clockState = ui.Text(time,"CANLI",0,126,324,26,21,CommandUI.Teal,"strong");
             clockState.alignment = TextAnchor.MiddleRight;
-            clockBar = ui.Bar(time,20,126,336,6,CommandUI.Teal);
+            clockBar = ui.Bar(time,0,119,324,3,CommandUI.Teal);
         }
 
         private void EnsureInput()
