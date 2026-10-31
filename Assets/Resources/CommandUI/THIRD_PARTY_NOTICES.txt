@@ -1,0 +1,21 @@
+COMMAND UI — ASSET SOURCES
+
+Fonts: Barlow Regular, Barlow SemiBold, Barlow Condensed SemiBold.
+Copyright 2017 The Barlow Project Authors. SIL Open Font License 1.1.
+Source: https://github.com/google/fonts/tree/main/ofl/barlow
+Source: https://github.com/google/fonts/tree/main/ofl/barlowcondensed
+License copies: Fonts/barlow-LICENSE.txt, Fonts/barlowcondensed-LICENSE.txt.
+
+Font: IBM Plex Mono Regular.
+Copyright IBM Corp. SIL Open Font License 1.1.
+Source: https://github.com/google/fonts/tree/main/ofl/ibmplexmono
+License copy: Fonts/ibmplexmono-LICENSE.txt.
+
+Geography: Natural Earth, 1:110m admin-0 countries, public domain.
+Source: https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_admin_0_countries.geojson
+Terms: https://www.naturalearthdata.com/about/terms-of-use/
+The WorldMap.png asset is a custom rendering of this geographic dataset.
+Original data and reproducible generator: Tools/CommandUI/.
+
+Icons, screen layout and interface shapes were drawn specifically for Pixamor.
+They are not copied from a commercial UI kit. No paid asset or online service is required at runtime.
