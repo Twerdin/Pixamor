@@ -58,11 +58,10 @@ namespace Pixamor.Editor
                 Debug.Log("6 monitörlü deneme sahnesi kaydedildi: "+ScenePath);
             }
             finally { SceneManager.SetActiveScene(previous);EditorSceneManager.CloseScene(scene,true); }
+            TrialRoomInteractionSetup.Upgrade();
         }
         static Material Material(string name,Color color,bool unlit=false) { var path=Folder+"/"+name+".mat";var m=AssetDatabase.LoadAssetAtPath<Material>(path);if(m!=null)return m;m=new Material(Shader.Find(unlit?"Universal Render Pipeline/Unlit":"Universal Render Pipeline/Lit")){color=color};AssetDatabase.CreateAsset(m,path);return m; }
         static void Cube(Transform parent,string name,Vector3 position,Vector3 scale,Material material) { var go=GameObject.CreatePrimitive(PrimitiveType.Cube);go.name=name;go.transform.SetParent(parent,false);go.transform.localPosition=position;go.transform.localScale=scale;go.GetComponent<Renderer>().sharedMaterial=material; }
         static void Light(string name,Vector3 position,Color color,float intensity,float range) { var go=new GameObject(name);go.transform.position=position;var light=go.AddComponent<Light>();light.type=LightType.Point;light.color=color;light.intensity=intensity;light.range=range;light.shadows=LightShadows.Soft; }
     }
 }
-
-

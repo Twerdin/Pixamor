@@ -13,6 +13,8 @@ namespace Pixamor
         [SerializeField] private Camera operatorCamera;
         [SerializeField] private Transform screenMount;
         [SerializeField] private FirstPersonOperator player;
+        [SerializeField] private Vector2 physicalScreenSize = new Vector2(5.5f, 3.575f);
+        [SerializeField] private Renderer[] staticScreenPreviews;
         private GameSession session;
         private CrisisManager crises;
         private GameFlowController flow;
@@ -34,6 +36,12 @@ namespace Pixamor
             operatorCamera = camera;
             screenMount = screen;
             player = controller;
+        }
+
+        public void ConfigureSurface(Vector2 size, Renderer[] previews)
+        {
+            physicalScreenSize = size;
+            staticScreenPreviews = previews;
         }
 
         private void Start()
@@ -60,6 +68,9 @@ namespace Pixamor
                 ownsFallbackMap = true;
             }
             BuildScreen();
+            // Editör önizlemesinin yerini çalışan, tıklanabilir oyun arayüzü alır.
+            if (staticScreenPreviews != null)
+                foreach (var preview in staticScreenPreviews) if (preview != null) preview.enabled = false;
             EnsureInput();
             flow = GetComponent<GameFlowController>();
             if (flow == null) flow = gameObject.AddComponent<GameFlowController>();
@@ -76,8 +87,8 @@ namespace Pixamor
             var root = screenRoot.GetComponent<RectTransform>();
             root.sizeDelta = new Vector2(1600,1040);
             root.SetPositionAndRotation(screenMount.position,screenMount.rotation);
-            // Fiziksel ekran genişliği 5.5 metre olarak korunur. Yalnızca içerik yenilenir.
-            root.localScale = Vector3.one * (5.5f / 1600f);
+            // Her sahne kendi fiziksel ekran ölçüsünü kullanır; ana odanın varsayılanı korunur.
+            root.localScale = new Vector3(physicalScreenSize.x / 1600f, physicalScreenSize.y / 1040f, .001f);
             ui.Panel(root,"Background",0,0,1600,1040,CommandUI.Background);
 
             // Harita artık bir panelin içinde değil, monitörün tamamının arka planıdır.

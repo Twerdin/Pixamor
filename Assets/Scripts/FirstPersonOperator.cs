@@ -10,6 +10,8 @@ namespace Pixamor
         [SerializeField] private Transform monitor;
         [SerializeField] private CrisisManager crises;
         [SerializeField] private float walkSpeed = 3f;
+        [SerializeField] private float monitorViewDistance = 4.7f;
+        [SerializeField] private float monitorHalfWidth = 3f;
         [SerializeField] private float mouseSensitivity = .10f;
         public bool IsUsingMonitor { get; private set; }
         public bool UIBlocked { get; private set; }
@@ -32,6 +34,12 @@ namespace Pixamor
             viewCamera = camera;
             monitor = screen;
             crises = manager;
+        }
+
+        public void ConfigureMonitorView(float distance, float width)
+        {
+            monitorViewDistance = Mathf.Max(.3f, distance);
+            monitorHalfWidth = width * .55f;
         }
 
         private void Start()
@@ -100,10 +108,10 @@ namespace Pixamor
             if (!Application.isPlaying || UIBlocked || IsUsingMonitor || viewCamera == null || monitor == null) return;
             IsUsingMonitor = true;
             // Oyuncuyu taşımadan kamerayı okuma konumuna getiririz.
-            viewCamera.transform.SetPositionAndRotation(monitor.position - monitor.forward * 4.7f,
+            viewCamera.transform.SetPositionAndRotation(monitor.position - monitor.forward * monitorViewDistance,
                 monitor.rotation);
             viewCamera.fieldOfView = Mathf.Max(48f,
-                2f * Mathf.Atan(3f / (4.7f * viewCamera.aspect)) * Mathf.Rad2Deg);
+                2f * Mathf.Atan(monitorHalfWidth / (monitorViewDistance * viewCamera.aspect)) * Mathf.Rad2Deg);
             CaptureMouse(false);
         }
 
