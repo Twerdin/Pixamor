@@ -11,11 +11,15 @@ Copyright IBM Corp. SIL Open Font License 1.1.
 Source: https://github.com/google/fonts/tree/main/ofl/ibmplexmono
 License copy: Fonts/ibmplexmono-LICENSE.txt.
 
-Geography: Natural Earth, 1:110m admin-0 countries, public domain.
-Source: https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_admin_0_countries.geojson
+Geography: Natural Earth, 1:50m admin-0 countries, public domain.
+Source: https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_50m_admin_0_countries.geojson
+Relief: Natural Earth I, 1:50m land cover and shaded relief, public domain.
+Source: https://www.naturalearthdata.com/downloads/50m-raster-data/50m-natural-earth-1/
+Download: https://naciscdn.org/naturalearth/50m/raster/NE1_50M_SR.zip
 Terms: https://www.naturalearthdata.com/about/terms-of-use/
-The WorldMap.png asset is a custom rendering of this geographic dataset.
-Original data and reproducible generator: Tools/CommandUI/.
+WorldMap.png is a custom 4096 x 2304 Mercator rendering of the borders and relief.
+Vector data and reproducible generators: Tools/CommandUI/.
+The large source TIFF is downloaded separately and is not required at runtime.
 
 Icons, screen layout and interface shapes were drawn specifically for Pixamor.
 They are not copied from a commercial UI kit. No paid asset or online service is required at runtime.

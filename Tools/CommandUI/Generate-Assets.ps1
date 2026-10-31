@@ -6,7 +6,7 @@ $artRoot = Join-Path $projectRoot 'Assets/Resources/CommandUI/Art'
 New-Item -ItemType Directory -Force -Path $artRoot | Out-Null
 function Color([int]$r,[int]$g,[int]$b,[int]$a=255) { [Drawing.Color]::FromArgb($a,$r,$g,$b) }
 function Project([double]$lon,[double]$lat) {
-    $limited = [Math]::Clamp($lat,-60,80)
+    $limited = [Math]::Min([double]80,[Math]::Max([double]-60,$lat))
     $upper = [Math]::Log([Math]::Tan([Math]::PI/4 + 80*[Math]::PI/360))
     $lower = [Math]::Log([Math]::Tan([Math]::PI/4 - 60*[Math]::PI/360))
     $mercator = [Math]::Log([Math]::Tan([Math]::PI/4 + $limited*[Math]::PI/360))
