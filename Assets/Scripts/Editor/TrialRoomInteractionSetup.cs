@@ -7,7 +7,7 @@ namespace Pixamor.Editor
 {
     public static class TrialRoomInteractionSetup
     {
-        public const string ModelPath="Assets/Prefabs/iklim_yönetim_odası (1).fbx";
+        public const string ModelPath="Assets/Prefabs/iklim_yönetim_odası (3).fbx";
         public const string ScenePath="Assets/Scenes/RoomSixMonitors_Trial.unity";
         [MenuItem("İklim Operatörü/Deneme/Masa Yerleşimini ve Etkileşimi Güncelle")]
         public static void Upgrade()
@@ -27,13 +27,11 @@ namespace Pixamor.Editor
                 {
                     var replacement=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath),scene);
                     replacement.name=room.name;
-                    var oldMaterials=room.GetComponentsInChildren<MeshRenderer>().ToDictionary(r=>r.name,r=>r.sharedMaterial);
-                    foreach(var renderer in replacement.GetComponentsInChildren<MeshRenderer>())
-                    {
-                        if(oldMaterials.TryGetValue(renderer.name,out var material))renderer.sharedMaterial=material;
-                        renderer.gameObject.AddComponent<MeshCollider>().sharedMesh=renderer.GetComponent<MeshFilter>().sharedMesh;
-                    }
-                    Object.DestroyImmediate(room);
+                    PrepareImportedRoom(replacement);
+                    // Kullanıcının sahneye sürüklediği aynı FBX kopyası üst üste görünmesin.
+                    foreach(var duplicate in roots.Where(r=>r!=room && PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(r)==ModelPath))
+                        Undo.DestroyObjectImmediate(duplicate);
+                    Undo.DestroyObjectImmediate(room);
                     room=replacement;
                     roots=scene.GetRootGameObjects();
                 }
@@ -41,7 +39,7 @@ namespace Pixamor.Editor
                 var desk=room.GetComponentsInChildren<MeshRenderer>().Single(r=>r.name=="Plane.015");
                 var bounds=desk.bounds;
                 var rig=roots.Single(r=>r.name=="SixMonitors_3x2").transform;
-                                Physics.SyncTransforms();
+                Physics.SyncTransforms();
                 float tableTop=bounds.max.y;
                 var tableCollider=desk.GetComponent<Collider>();
                 // En yüksek kenarlık yerine, ayağın altındaki gerçek tabla yüzeyini ölç.
@@ -83,6 +81,40 @@ namespace Pixamor.Editor
             }
             finally {SceneManager.SetActiveScene(previous);if(opened)EditorSceneManager.CloseScene(scene,true);}
         }
+        public static void PrepareImportedRoom(GameObject room)
+        {
+            var convertedMaterials=new System.Collections.Generic.Dictionary<Material,Material>();
+            foreach(var renderer in room.GetComponentsInChildren<MeshRenderer>())
+            {
+                // Tüm yuvaları koru: yatağın kumaşı ile ahşabı ayrı malzemeler olabilir.
+                renderer.sharedMaterials=renderer.sharedMaterials.Select(m=>ConvertMaterial(m,convertedMaterials)).ToArray();
+                if(renderer.GetComponent<MeshCollider>()==null)
+                    renderer.gameObject.AddComponent<MeshCollider>().sharedMesh=renderer.GetComponent<MeshFilter>().sharedMesh;
+            }
+        }
+        static Material ConvertMaterial(Material source,System.Collections.Generic.Dictionary<Material,Material> cache)
+        {
+            if(source==null)return null;
+            if(cache.TryGetValue(source,out var found))return found;
+            const string folder="Assets/Materials/RoomTrial/Model3";
+            if(!AssetDatabase.IsValidFolder(folder))AssetDatabase.CreateFolder("Assets/Materials/RoomTrial","Model3");
+            string path=folder+"/"+source.name.Replace("/","_")+".mat";
+            var material=AssetDatabase.LoadAssetAtPath<Material>(path);
+            if(material==null)
+            {
+                material=new Material(Shader.Find("Universal Render Pipeline/Lit")){name=source.name};
+                if(source.HasProperty("_Color"))material.SetColor("_BaseColor",source.GetColor("_Color"));
+                if(source.HasProperty("_BaseColor"))material.SetColor("_BaseColor",source.GetColor("_BaseColor"));
+                material.SetTexture("_BaseMap",source.mainTexture);
+                material.SetTextureScale("_BaseMap",source.mainTextureScale);
+                material.SetTextureOffset("_BaseMap",source.mainTextureOffset);
+                if(source.HasProperty("_Metallic"))material.SetFloat("_Metallic",source.GetFloat("_Metallic"));
+                if(source.HasProperty("_Glossiness"))material.SetFloat("_Smoothness",source.GetFloat("_Glossiness"));
+                if(source.HasProperty("_BumpMap") && source.GetTexture("_BumpMap")!=null){material.SetTexture("_BumpMap",source.GetTexture("_BumpMap"));material.EnableKeyword("_NORMALMAP");}
+                AssetDatabase.CreateAsset(material,path);
+            }
+            cache[source]=material;return material;
+        }
         static void Beam(Transform root,string name,Vector3 position,Vector3 scale,Material material)
         {
             var t=root.Find(name);if(t==null){t=GameObject.CreatePrimitive(PrimitiveType.Cube).transform;t.name=name;t.SetParent(root,false);}
@@ -90,5 +122,3 @@ namespace Pixamor.Editor
         }
     }
 }
-
-

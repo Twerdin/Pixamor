@@ -25,12 +25,7 @@ namespace Pixamor.Editor
                 if(!AssetDatabase.IsValidFolder(Folder))AssetDatabase.CreateFolder("Assets/Materials","RoomTrial");
                 var room=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(TrialRoomInteractionSetup.ModelPath),scene);
                 room.name="ImportedRoom_OriginalScale";
-                var wall=Material("Walls",new Color(.34f,.39f,.43f));var furniture=Material("Furniture",new Color(.14f,.19f,.23f));var wood=Material("Desk",new Color(.32f,.22f,.14f));var floor=Material("Floor",new Color(.19f,.22f,.24f));
-                foreach(var r in room.GetComponentsInChildren<MeshRenderer>())
-                {
-                    r.sharedMaterial=r.name=="Plane.013"?wood:r.name=="Plane" || r.name=="Plane.014"?floor:r.name.StartsWith("Cube") || r.name=="Plane.015"?furniture:wall;
-                    var collider=r.gameObject.AddComponent<MeshCollider>();collider.sharedMesh=r.GetComponent<MeshFilter>().sharedMesh;
-                }
+                TrialRoomInteractionSetup.PrepareImportedRoom(room);
                 var metal=Material("Bezel",new Color(.018f,.027f,.036f));
                 var assembly=new GameObject("SixMonitors_3x2");assembly.transform.position=new Vector3(-1.75f,1.71f,-1.73f);assembly.transform.rotation=Quaternion.Euler(0,180,0);
                 // 2.16 m genişlik, 0.84 m yükseklik: 2.30 m masaya sığar. Alt kenar 1.29 m.
@@ -65,4 +60,3 @@ namespace Pixamor.Editor
         static void Light(string name,Vector3 position,Color color,float intensity,float range) { var go=new GameObject(name);go.transform.position=position;var light=go.AddComponent<Light>();light.type=LightType.Point;light.color=color;light.intensity=intensity;light.range=range;light.shadows=LightShadows.Soft; }
     }
 }
-
