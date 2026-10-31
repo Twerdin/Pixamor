@@ -23,7 +23,7 @@ namespace Pixamor.Editor
             {
                 SceneManager.SetActiveScene(scene);
                 if(!AssetDatabase.IsValidFolder(Folder))AssetDatabase.CreateFolder("Assets/Materials","RoomTrial");
-                var room=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/iklim_yönetim_odası.fbx"),scene);
+                var room=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(TrialRoomInteractionSetup.ModelPath),scene);
                 room.name="ImportedRoom_OriginalScale";
                 var wall=Material("Walls",new Color(.34f,.39f,.43f));var furniture=Material("Furniture",new Color(.14f,.19f,.23f));var wood=Material("Desk",new Color(.32f,.22f,.14f));var floor=Material("Floor",new Color(.19f,.22f,.24f));
                 foreach(var r in room.GetComponentsInChildren<MeshRenderer>())
@@ -65,3 +65,4 @@ namespace Pixamor.Editor
         static void Light(string name,Vector3 position,Color color,float intensity,float range) { var go=new GameObject(name);go.transform.position=position;var light=go.AddComponent<Light>();light.type=LightType.Point;light.color=color;light.intensity=intensity;light.range=range;light.shadows=LightShadows.Soft; }
     }
 }
+

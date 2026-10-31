@@ -11,7 +11,7 @@ namespace Pixamor.Editor
         [MenuItem("İklim Operatörü/Deneme/Oda Ölçülerini İncele")]
         public static void Inspect()
         {
-            var model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/iklim_yönetim_odası.fbx");
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/iklim_yönetim_odası (1).fbx");
             if (model == null) return;
             var text = new StringBuilder();
             foreach (var r in model.GetComponentsInChildren<Renderer>(true))
@@ -21,3 +21,4 @@ namespace Pixamor.Editor
         }
     }
 }
+

@@ -7,6 +7,7 @@ namespace Pixamor.Editor
 {
     public static class TrialRoomInteractionSetup
     {
+        public const string ModelPath="Assets/Prefabs/iklim_yönetim_odası (1).fbx";
         public const string ScenePath="Assets/Scenes/RoomSixMonitors_Trial.unity";
         [MenuItem("İklim Operatörü/Deneme/Masa Yerleşimini ve Etkileşimi Güncelle")]
         public static void Upgrade()
@@ -21,11 +22,31 @@ namespace Pixamor.Editor
                 SceneManager.SetActiveScene(scene);
                 var roots=scene.GetRootGameObjects();
                 var room=roots.Single(r=>r.name=="ImportedRoom_OriginalScale");
+                // Yeni FBX, yalnızca deneme sahnesindeki oda örneğinin yerini alır.
+                if(PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(room)!=ModelPath)
+                {
+                    var replacement=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath),scene);
+                    replacement.name=room.name;
+                    var oldMaterials=room.GetComponentsInChildren<MeshRenderer>().ToDictionary(r=>r.name,r=>r.sharedMaterial);
+                    foreach(var renderer in replacement.GetComponentsInChildren<MeshRenderer>())
+                    {
+                        if(oldMaterials.TryGetValue(renderer.name,out var material))renderer.sharedMaterial=material;
+                        renderer.gameObject.AddComponent<MeshCollider>().sharedMesh=renderer.GetComponent<MeshFilter>().sharedMesh;
+                    }
+                    Object.DestroyImmediate(room);
+                    room=replacement;
+                    roots=scene.GetRootGameObjects();
+                }
                 // Modelde Plane.013 yataktır; sağ duvar önündeki masa Plane.015'tir.
                 var desk=room.GetComponentsInChildren<MeshRenderer>().Single(r=>r.name=="Plane.015");
                 var bounds=desk.bounds;
                 var rig=roots.Single(r=>r.name=="SixMonitors_3x2").transform;
-                rig.SetPositionAndRotation(new Vector3(bounds.max.x-.35f,bounds.max.y+.675f,bounds.center.z),Quaternion.Euler(0,90,0));
+                                Physics.SyncTransforms();
+                float tableTop=bounds.max.y;
+                var tableCollider=desk.GetComponent<Collider>();
+                // En yüksek kenarlık yerine, ayağın altındaki gerçek tabla yüzeyini ölç.
+                if(tableCollider.Raycast(new Ray(new Vector3(bounds.max.x-.26f,bounds.max.y+1,bounds.center.z),Vector3.down),out var hit,2))tableTop=hit.point.y;
+                rig.SetPositionAndRotation(new Vector3(bounds.max.x-.35f,tableTop+.675f,bounds.center.z),Quaternion.Euler(0,90,0));
                 var metal=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/RoomTrial/Bezel.mat");
                 var previews=new System.Collections.Generic.List<Renderer>();
                 for(int row=0;row<2;row++)for(int col=0;col<3;col++)
@@ -69,3 +90,5 @@ namespace Pixamor.Editor
         }
     }
 }
+
+
