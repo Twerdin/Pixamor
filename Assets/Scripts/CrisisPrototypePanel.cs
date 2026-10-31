@@ -2,17 +2,26 @@ using UnityEngine;
 
 namespace Pixamor
 {
-    // Harita ve Canvas tasarımı gelene kadar kriz listesini ve kartı gösterir.
+    // Geçici monitör arayüzü: harita, kaynaklar ve müdahale kartları.
     [RequireComponent(typeof(GameSession), typeof(CrisisManager))]
     public class CrisisPrototypePanel : MonoBehaviour
     {
         private GameSession session;
         private CrisisManager crises;
+        private Texture2D mapTexture;
 
         private void Awake()
         {
             session = GetComponent<GameSession>();
             crises = GetComponent<CrisisManager>();
+            // Haritayı her karede değil, yalnızca bir kez üretiriz.
+            mapTexture = CrisisMapTexture.Create();
+        }
+
+        private void OnDestroy()
+        {
+            // Çalışma anında üretilen görselin belleğini serbest bırakırız.
+            if (mapTexture != null) Destroy(mapTexture);
         }
 
         private void OnGUI()
@@ -22,13 +31,18 @@ namespace Pixamor
             float scale = Mathf.Min(Screen.width / 1100f, Screen.height / 720f);
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one * scale);
 
-            DrawResources();
-            if (session.State != SessionState.Running) DrawEnd();
-            else if (crises.OpenCard != null) DrawCard();
-            else DrawCrisisList();
-
-            GUI.enabled = true;
-            GUI.matrix = previousMatrix;
+            try
+            {
+                DrawResources();
+                if (session.State != SessionState.Running) DrawEnd();
+                else if (crises.OpenCard != null) DrawCard();
+                else DrawMap();
+            }
+            finally
+            {
+                GUI.enabled = true;
+                GUI.matrix = previousMatrix;
+            }
         }
 
         private void DrawResources()
@@ -53,24 +67,56 @@ namespace Pixamor
             GUILayout.EndArea();
         }
 
+        private void DrawMap()
+        {
+            GUI.Box(new Rect(20, 20, 715, 675), GUIContent.none);
+            GUI.Label(new Rect(35, 30, 680, 25), "DÜNYA KRİZ MONİTÖRÜ — ŞEMATİK HARİTA");
+            GUI.Label(new Rect(35, 55, 680, 25), "İşarete tıkla ve müdahale et. Son 10 saniye: kırmızı uyarı.");
+
+            Rect mapRect = new Rect(35, 90, 680, 360);
+            GUI.DrawTexture(mapRect, mapTexture);
+            foreach (var crisis in crises.Active)
+            {
+                float left = crises.SecondsLeft(crisis);
+                Vector2 position = crisis.Data.MapPosition;
+                // Aynı koordinatlar farklı pencere boyutlarında da haritaya bağlı kalır.
+                float x = mapRect.x + Mathf.Clamp01(position.x) * mapRect.width;
+                float y = mapRect.y + Mathf.Clamp01(position.y) * mapRect.height;
+                Rect marker = new Rect(x - 26, y - 22, 52, 44);
+                Color previousColor = GUI.backgroundColor;
+                GUI.backgroundColor = left <= 10f ? new Color(1f, .25f, .2f) : TypeColor(crisis.Data.Type);
+                string label = $"{TypeCode(crisis.Data.Type)}\n{Mathf.CeilToInt(left)} sn";
+                bool clicked = GUI.Button(marker, new GUIContent(label,
+                    crisis.Data.Region + " — " + crisis.Data.Title));
+                GUI.backgroundColor = previousColor;
+                if (clicked)
+                {
+                    crises.Open(crisis);
+                    GUIUtility.ExitGUI();
+                }
+            }
+
+            GUI.Label(new Rect(35, 458, 680, 25), "SEL: Sel    KUR: Kuraklık    YAN: Orman yangını    SIC: Aşırı sıcaklık");
+            DrawCrisisList();
+        }
+
         private void DrawCrisisList()
         {
-            GUILayout.BeginArea(new Rect(20, 20, 715, 675), GUI.skin.box);
-            GUILayout.Label("AKTİF KRİZLER — GEÇİCİ HARİTA LİSTESİ");
-            GUILayout.Label("Bir krize tıklayarak müdahale kartını aç.");
-            GUILayout.Space(12);
+            // Haritadaki küçük işaretlere alternatif, daha büyük tıklama alanları.
+            GUILayout.BeginArea(new Rect(35, 495, 680, 185));
+            GUILayout.Label($"AKTİF KRİZLER: {crises.Active.Count}");
             if (crises.Active.Count == 0) GUILayout.Label("Şu anda aktif kriz yok.");
             // Tıklama listeyi değiştirebileceği için çizimden sonra döngüden çıkılır.
             foreach (var crisis in crises.Active)
             {
                 string label = $"{crisis.Data.Region} — {crisis.Data.Title}\n" +
                     $"Kalan müdahale süresi: {Mathf.CeilToInt(crises.SecondsLeft(crisis))} sn";
-                if (GUILayout.Button(label, GUILayout.Height(65)))
+                if (GUILayout.Button(label, GUILayout.Height(55)))
                 {
                     crises.Open(crisis);
-                    break;
+                    GUIUtility.ExitGUI();
                 }
-                GUILayout.Space(8);
+                GUILayout.Space(4);
             }
             GUILayout.EndArea();
         }
@@ -101,13 +147,17 @@ namespace Pixamor
                 if (clicked)
                 {
                     crises.Choose(i);
-                    break;
+                    GUIUtility.ExitGUI();
                 }
             }
 
             GUILayout.Space(12);
             if (GUILayout.Button("Karar vermeden kapat", GUILayout.Height(40)))
+            {
                 crises.CloseCard();
+                // Kart/listenin kontrol sayısı değişince eski çizim turunu sonlandır.
+                GUIUtility.ExitGUI();
+            }
             GUILayout.EndArea();
         }
 
@@ -121,11 +171,36 @@ namespace Pixamor
             GUILayout.Label($"Bitişte açık kalan kriz: {crises.Active.Count}");
             GUILayout.Space(20);
             if (GUILayout.Button("Yeni vardiya başlat", GUILayout.Height(45)))
+            {
                 session.RestartSession();
+                GUIUtility.ExitGUI();
+            }
             GUILayout.EndArea();
         }
 
         private static string Signed(int value) => value > 0 ? "+" + value : value.ToString();
+
+        private static string TypeCode(CrisisType type)
+        {
+            switch (type)
+            {
+                case CrisisType.Flood: return "SEL";
+                case CrisisType.Drought: return "KUR";
+                case CrisisType.Wildfire: return "YAN";
+                default: return "SIC";
+            }
+        }
+
+        private static Color TypeColor(CrisisType type)
+        {
+            switch (type)
+            {
+                case CrisisType.Flood: return new Color(.35f, .7f, 1f);
+                case CrisisType.Drought: return new Color(1f, .85f, .35f);
+                case CrisisType.Wildfire: return new Color(1f, .5f, .2f);
+                default: return new Color(1f, .55f, .65f);
+            }
+        }
 
         private static GUIStyle WrapStyle()
         {
