@@ -14,6 +14,9 @@ namespace Pixamor
 
         private GameSession session;
         private CrisisData[] catalog;
+        private bool shuffleOnRestart = true;
+        private readonly System.Random random = new System.Random();
+        private string lastOpeningCrisis;
         private readonly List<ActiveCrisis> active = new List<ActiveCrisis>();
         private int nextIndex;
 
@@ -48,6 +51,20 @@ namespace Pixamor
 
         private void ResetCrises()
         {
+            catalog = CrisisCatalog.Create();
+
+            // Her yeni vardiyada olayları kayıpsız karıştır; aynı afet iki kez eklenmez.
+            if (shuffleOnRestart) for (int i = catalog.Length - 1; i > 0; i--)
+            {
+                int other = random.Next(i + 1);
+                var swap = catalog[i]; catalog[i] = catalog[other]; catalog[other] = swap;
+            }
+            // Art arda oynanan vardiyalar aynı afetle başlamasın.
+            if (shuffleOnRestart && catalog.Length > 1 && catalog[0].Title == lastOpeningCrisis)
+            {
+                int other = random.Next(1, catalog.Length);
+                var swap = catalog[0]; catalog[0] = catalog[other]; catalog[other] = swap;
+            }
             active.Clear();
             OpenCard = null;
             nextIndex = 0;
@@ -80,6 +97,7 @@ namespace Pixamor
                 else
                 {
                     var crisis = new ActiveCrisis(nextIndex, catalog[nextIndex], spawnAt);
+                    if (nextIndex == 0) lastOpeningCrisis = crisis.Data.Title;
                     active.Add(crisis);
                     nextIndex++;
                     CrisisSpawned?.Invoke(crisis);
@@ -146,3 +164,4 @@ namespace Pixamor
         }
     }
 }
+

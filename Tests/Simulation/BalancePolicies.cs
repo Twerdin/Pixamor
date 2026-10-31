@@ -21,6 +21,7 @@ partial class Check
         UnityEngine.MonoBehaviour.Session = session;
         session.RestartSession();
         var manager = new CrisisManager();
+        manager.GetType().GetField("shuffleOnRestart",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(manager,false);
         manager.GetType().GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(manager, null);
         manager.GetType().GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(manager, null);
         var result = new PolicyResult { MinimumMoney = session.Money };

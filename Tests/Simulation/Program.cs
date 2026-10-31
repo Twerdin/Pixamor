@@ -23,6 +23,7 @@ partial class Check {
  static void Tick(GameSession g,float seconds) { UnityEngine.Time.deltaTime=seconds; Call(g,"Update"); Call(g,"LateUpdate"); }
  static void CreateSimulation(out GameSession g,out CrisisManager m) {
   g=new GameSession();UnityEngine.MonoBehaviour.Session=g;g.RestartSession();m=new CrisisManager();
+  m.GetType().GetField("shuffleOnRestart",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(m,false);
   m.GetType().GetMethod("Awake",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(m,null);
   m.GetType().GetMethod("OnEnable",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(m,null);
  }
