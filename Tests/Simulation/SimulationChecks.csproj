@@ -10,12 +10,10 @@
     <Compile Include="../../Assets/Scripts/CrisisCatalog.cs" />
     <Compile Include="../../Assets/Scripts/CrisisManager.cs" />
     <Compile Include="../../Assets/Scripts/DifficultyRules.cs" />
+    <Compile Include="../../Assets/Scripts/GameLanguage.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="DifficultyLanguageChecks.cs" />
     <Compile Include="BalancePolicies.cs" />
     <Compile Include="BoundaryChecks.cs" />
   </ItemGroup>
 </Project>
-
-
-

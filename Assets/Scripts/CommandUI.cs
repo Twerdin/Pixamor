@@ -79,7 +79,7 @@ namespace Pixamor
         public TMP_Text Text(Transform parent, string value, float x, float y, float w, float h, int size = 28,
             Color? color = null, string role = "body")
         {
-            var text = Rect(parent, "Text", x, y, w, h).gameObject.AddComponent<TextMeshProUGUI>();
+            var text = Rect(parent, "Text", x, y, w, h).gameObject.AddComponent<LocalizedUiText>();
             text.font = role == "display" ? display : role == "mono" ? mono : role == "strong" ? semibold : regular;
             text.text = value;
             text.fontSize = size;

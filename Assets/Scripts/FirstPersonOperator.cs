@@ -211,7 +211,7 @@ namespace Pixamor
             if (monitor == null || IsUsingMonitor || UIBlocked) return;
             string hint = InReach ? "Monitöre bak ve E'ye bas | WASD: yürü | Fare: bak | Shift: hızlan" :
                 "WASD: yürü | Fare: bak | Monitöre yaklaş | Esc: duraklat";
-            GUI.Box(new Rect(15, Screen.height - 50, Mathf.Min(780, Screen.width - 30), 35), hint);
+            GUI.Box(new Rect(15, Screen.height - 50, Mathf.Min(780, Screen.width - 30), 35), GameLanguage.Translate(hint));
             if (!IsUsingMonitor && Cursor.lockState == CursorLockMode.Locked)
                 GUI.Label(new Rect(Screen.width / 2f - 5, Screen.height / 2f - 10, 20, 20), "+");
         }

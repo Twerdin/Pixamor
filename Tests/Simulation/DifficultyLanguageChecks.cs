@@ -32,6 +32,14 @@ partial class Check
    Tick(game,5);var opening=manager.Active[0].Data.Title;game.RestartSession();Tick(game,5);Assert(manager.Active[0].Data.Title!=opening,"Art arda vardiyalarda ilk afet farklı");
   }
   Assert(changed,"Yeniden başlatmalar farklı afet sıraları üretiyor");
+  GameLanguage.Current=UiLanguage.English;
+  Assert(GameLanguage.Translate("KOLAY")=="EASY" && GameLanguage.Translate("ZOR")=="HARD","Zorluk seçimi İngilizce");
+  foreach(var data in CrisisCatalog.Create()){
+   Assert(GameLanguage.Translate(data.Title)!=data.Title && GameLanguage.Translate(data.Description)!=data.Description,"Afet başlığı ve açıklaması çevriliyor");
+   foreach(var option in data.Options)Assert(GameLanguage.Translate(option.Title)!=option.Title && GameLanguage.Translate(option.Result)!=option.Result,"Seçenek ve sonuç çevriliyor");
+  }
+  Assert(GameLanguage.Translate("KALAN SÜRE / 12 sn")=="TIME LEFT / 12 sec","Canlı sayaç çevriliyor");
+  GameLanguage.Current=UiLanguage.Turkish;Assert(GameLanguage.Translate("İklim dengesi")=="İklim dengesi","Türkçeye dönüş kaynak metni koruyor");
   foreach(var mode in new[]{GameDifficulty.Easy,GameDifficulty.Hard}){
    CreateSimulation(out game,out manager);game.RestartSession(mode);
    for(int i=0;i<16;i++){Tick(game,i==0?5:20);manager.Open(manager.Active[0]);Assert(manager.Choose(i==1||i==6||i==8?0:1),"Zorlukta dengeli karar: "+mode);}
@@ -39,6 +47,3 @@ partial class Check
   }
  }
 }
-
-
-

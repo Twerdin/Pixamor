@@ -42,6 +42,7 @@ namespace Pixamor
             player.MouseSensitivity = PlayerPrefs.GetFloat("Pixamor.MouseSensitivity",.10f);
             AnimationsEnabled = PlayerPrefs.GetInt("Pixamor.Animations",1) != 0;
             selectedDifficulty = PlayerPrefs.GetInt("Pixamor.Difficulty",0)==1 ? GameDifficulty.Hard : GameDifficulty.Easy;
+            GameLanguage.Current = PlayerPrefs.GetInt("Pixamor.Language",0)==1 ? UiLanguage.English : UiLanguage.Turkish;
             ui = new CommandUI();
             BuildOverlay(map);
             session.Ended += OnSessionEnded;
@@ -139,6 +140,12 @@ namespace Pixamor
             PlayerPrefs.SetInt("Pixamor.Difficulty",(int)difficulty);PlayerPrefs.Save();
             Show(GameScreen.MainMenu);
         }
+        private void SelectLanguage(UiLanguage language)
+        {
+            GameLanguage.Current=language;
+            PlayerPrefs.SetInt("Pixamor.Language",(int)language);PlayerPrefs.Save();
+            Show(GameScreen.MainMenu);
+        }
         public void StartShift()
         {
             session.RestartSession(selectedDifficulty);
@@ -210,5 +217,3 @@ namespace Pixamor
         }
     }
 }
-
-

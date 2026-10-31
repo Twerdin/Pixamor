@@ -19,7 +19,7 @@ namespace Pixamor
         {
             subtitle.text="OPERASYON TERMİNALİ / VARDİYA BAŞLANGICI";
             ui.Text(body,"BİR DÜNYA.\nON ALTI KRİZ.\nTEK OPERATÖR.",80,24,920,310,80,CommandUI.White,"display");
-            ui.Text(body,"Halkı koru. Kaynaklarını yönet.\nİklim dengesini ayakta tut.",80,354,860,70,28,CommandUI.Muted);
+            ui.Text(body,"Halkı koru. Kaynaklarını yönet.\nİklim dengesini ayakta tut.",80,354,860,80,26,CommandUI.Muted);
             var easy=ui.Button(body,"DifficultyEasy",80,444,416,64,()=>SelectDifficulty(GameDifficulty.Easy),selectedDifficulty==GameDifficulty.Easy?new Color(.07f,.29f,.26f):CommandUI.Surface);
             ui.Text(easy.transform,"KOLAY",18,12,380,40,30,selectedDifficulty==GameDifficulty.Easy?CommandUI.Teal:CommandUI.Muted,"strong");
             var hard=ui.Button(body,"DifficultyHard",516,444,424,64,()=>SelectDifficulty(GameDifficulty.Hard),selectedDifficulty==GameDifficulty.Hard?new Color(.32f,.15f,.08f):CommandUI.Surface);
@@ -29,6 +29,10 @@ namespace Pixamor
             ui.Text(body,$"{FormatTime(session.RemainingTime)} VARDİYA   /   16 KRİZ   /   TEK ODA",80,682,890,38,25,CommandUI.Muted,"mono");
             var right=ui.Panel(body,"MenuActions",1040,68,480,588,new Color(.025f,.06f,.09f,.44f),true);
             ui.Icon(right,"Globe",28,28,70,CommandUI.Teal);
+            var tr=ui.Button(right,"LanguageTurkish",128,36,154,58,()=>SelectLanguage(UiLanguage.Turkish),GameLanguage.Current==UiLanguage.Turkish?CommandUI.Raised:CommandUI.Surface);
+            ui.Text(tr.transform,"TÜRKÇE",12,13,130,34,24,CommandUI.White,"strong");
+            var en=ui.Button(right,"LanguageEnglish",294,36,158,58,()=>SelectLanguage(UiLanguage.English),GameLanguage.Current==UiLanguage.English?CommandUI.Raised:CommandUI.Surface);
+            ui.Text(en.transform,"ENGLISH",12,13,134,34,24,CommandUI.White,"strong");
             ui.Caption(right,"DÜNYA SENİ BEKLİYOR",28,124,424,34,CommandUI.Teal);
             ui.Text(right,"Her müdahalenin bir bedeli var.\nKarar senin.",28,181,424,110,33,CommandUI.White,"display");
             MenuButton(right,"Nasıl oynanır?",24,306,432,()=>Open(GameScreen.Help));
@@ -154,7 +158,3 @@ namespace Pixamor
         }
     }
 }
-
-
-
-
