@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,6 +20,7 @@ namespace Pixamor
         public int HandledCount { get; private set; }
         public int MissedCount { get; private set; }
         public string LastResult { get; private set; }
+        public event Action<ActiveCrisis> CrisisSpawned;
 
         private void Awake()
         {
@@ -75,8 +77,10 @@ namespace Pixamor
                     Resolve(expired, expired.Data.TimeoutResult, true);
                 else
                 {
-                    active.Add(new ActiveCrisis(nextIndex, catalog[nextIndex], spawnAt));
+                    var crisis = new ActiveCrisis(nextIndex, catalog[nextIndex], spawnAt);
+                    active.Add(crisis);
                     nextIndex++;
+                    CrisisSpawned?.Invoke(crisis);
                 }
             }
         }

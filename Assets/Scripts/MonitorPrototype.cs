@@ -20,6 +20,7 @@ namespace Pixamor
         private GameObject prototypeRoot;
         private RectTransform content;
         private Text resources;
+        private Text alertBanner;
         private Font font;
         private Texture2D map;
         private Camera screenCamera;
@@ -45,6 +46,8 @@ namespace Pixamor
             }
             session = GetComponent<GameSession>();
             crises = GetComponent<CrisisManager>();
+            if (GetComponent<MonitorFeedback>() == null)
+                gameObject.AddComponent<MonitorFeedback>();
             // Eski ekran üstü çizimin fiziksel monitörü örtmesini önler.
             var oldPanel = GetComponent<CrisisPrototypePanel>();
             if (oldPanel != null) oldPanel.enabled = false;
@@ -73,7 +76,7 @@ namespace Pixamor
             rect.localScale = Vector3.one * .005f;
 
             Panel(rect, "ScreenBackground", 0, 0, 1100, 720, new Color(.035f,.065f,.085f));
-            Label(rect, "İKLİM OPERATÖRÜ / KRİZ MASASI", 25, 15, 1050, 40, 26);
+            alertBanner = Label(rect, "İKLİM OPERATÖRÜ / KRİZ MASASI", 25, 15, 1050, 40, 26);
             var sidebar = Panel(rect, "Resources", 760, 70, 315, 625, new Color(.07f,.12f,.15f));
             resources = Label(sidebar, "", 15, 15, 285, 590, 20);
             content = Panel(rect, "Content", 25, 70, 710, 625, new Color(.045f,.09f,.12f));
@@ -93,6 +96,7 @@ namespace Pixamor
             if (prototypeRoot == null) return;
             // Fare yalnızca monitör kullanımındayken fiziksel ekrana tıklayabilir.
             screenRaycaster.enabled = player.IsUsingMonitor;
+            UpdateAlertBanner();
             int seconds = Mathf.CeilToInt(session.RemainingTime);
             string warning = (session.HasHappinessWarning ? "\nUYARI: Halk protestoları!" : "") +
                 (session.HasClimateWarning ? "\nUYARI: İklim kritik!" : "");
@@ -117,6 +121,31 @@ namespace Pixamor
             }
             // Sayaç metinlerini güncellerken butonları yeniden üretmeyiz.
             foreach (var refresh in refreshers) refresh();
+        }
+
+        private void UpdateAlertBanner()
+        {
+            bool critical = session.HasHappinessWarning || session.HasClimateWarning;
+            bool running = session.State == SessionState.Running;
+            if (critical && running)
+            {
+                alertBanner.text = session.HasHappinessWarning && session.HasClimateWarning
+                    ? "KRİTİK: HALK VE İKLİM TEHLİKEDE"
+                    : session.HasHappinessWarning ? "PROTESTOLAR: HALKIN GÜVENİ KRİTİK"
+                    : "KRİTİK: İKLİM DENGESİ BOZULUYOR";
+                // Kart açıkken ışık sabitlenir; alarm metni görünür kalır.
+                float pulse = session.IsPaused ? 1f : .7f + .3f * Mathf.Sin(session.ElapsedTime * 4f);
+                alertBanner.color = new Color(1f, .25f + .3f * pulse, .15f);
+                resources.color = new Color(1f, .8f, .65f);
+            }
+            else
+            {
+                alertBanner.text = running && crises.Active.Count > 0
+                    ? $"YENİ UYARI / {crises.Active.Count} AKTİF KRİZ"
+                    : "İKLİM OPERATÖRÜ / KRİZ MASASI";
+                alertBanner.color = new Color(.87f, .95f, .94f);
+                resources.color = alertBanner.color;
+            }
         }
 
         private void ClearContent()
