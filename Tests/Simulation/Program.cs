@@ -50,9 +50,16 @@ partial class Check {
   g.RestartSession();Tick(g,5);m.Open(m.Active[0]);g.RestartSession();Assert(m.OpenCard==null && m.Active.Count==0 && !g.IsPaused,"Yeniden başlatma açık krizi temizler");
  }
  static void RunFastSpawnCheck() {
-  var g=new GameSession();UnityEngine.MonoBehaviour.Session=g;g.RestartSession();var m=new CrisisManager();
-  var flags=BindingFlags.Instance|BindingFlags.NonPublic;m.GetType().GetMethod("Awake",flags).Invoke(m,null);m.GetType().GetMethod("OnEnable",flags).Invoke(m,null);
-  int spawned=0;m.CrisisSpawned+=_=>spawned++;Tick(g,5);m.Open(m.Active[0]);Tick(g,11);Assert(spawned==1,"Yeni tempoda 17. saniyeden önce ikinci afet yok");Tick(g,1);Assert(spawned==2 && !g.IsPaused,"Yeni tempoda kart açıkken 12 saniyede ikinci afet");Tick(g,12);Assert(spawned==3,"Yeni tempoda 29. saniyede üçüncü afet");
+  bool sawBurst=false,sawNormal=false,sawVariation=false;float previousGap=-1;
+  for(int run=0;run<30;run++){
+   var g=new GameSession();UnityEngine.MonoBehaviour.Session=g;g.RestartSession();var m=new CrisisManager();var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+   m.GetType().GetMethod("Awake",flags).Invoke(m,null);m.GetType().GetMethod("OnEnable",flags).Invoke(m,null);
+   var data=(CrisisData[])m.GetType().GetField("catalog",flags).GetValue(m);foreach(var d in data)d.TimeoutResult=new InterventionData("Test",0,0,0,"Test",false);
+   float last=-1;bool previousBurst=false;int count=0;
+   m.CrisisSpawned+=crisis=>{float at=crisis.Deadline-crisis.Data.ResponseDuration;if(last>=0){float gap=at-last;bool burst=gap<4; if(burst){if(gap<.999f||gap>3.001f||previousBurst)throw new Exception("Geçersiz ani kriz aralığı");sawBurst=true;}else{if(gap<7.999f||gap>12.001f)throw new Exception("Geçersiz normal aralık");sawNormal=true;}if(previousGap>=0 && Math.Abs(gap-previousGap)>.01)sawVariation=true;previousGap=gap;previousBurst=burst;}last=at;count++;};
+   Tick(g,5);m.Open(m.Active[0]);for(int i=0;i<250;i++)Tick(g,1);if(count!=16 || g.IsPaused)throw new Exception("Afet sayısı veya kart zamanı hatalı");
+  }
+  Assert(sawBurst && sawNormal && sawVariation,"30 vardiyada 8–12 sn normal aralık, 1–3 sn ani afet, değişken ritim ve açık kartta akış");
  }
  static void Main() { RunFastSpawnCheck(); RunDifficultyLanguageChecks(); RunBalancePolicies(); RunCrises();
   var g=new GameSession(); g.RestartSession();
@@ -72,5 +79,6 @@ partial class Check {
   g.RestartSession(); g.ApplyResourceChanges(-46,-46); Assert(g.HasHappinessWarning && g.HasClimateWarning,"Warnings below 25");
  }
 }
+
 
 

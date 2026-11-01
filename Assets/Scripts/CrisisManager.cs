@@ -8,8 +8,9 @@ namespace Pixamor
     public class CrisisManager : MonoBehaviour
     {
         [SerializeField, Min(0f)] private float firstCrisisTime = 5f;
-        // Yeni tempo: 12 saniyede bir afet. Sahnedeki eski kayıtlar bu değeri değiştirmez.
-        private float spawnInterval = 12f;
+        // Pozitif değer yalnızca sabit zaman çizelgeli regresyon testlerinde kullanılır.
+        private float spawnInterval;
+        private float[] spawnOffsets;
         public void ConfigureTempo() { firstCrisisTime=5f; }
 
         private GameSession session;
@@ -65,6 +66,17 @@ namespace Pixamor
                 int other = random.Next(1, catalog.Length);
                 var swap = catalog[0]; catalog[0] = catalog[other]; catalog[other] = swap;
             }
+            spawnOffsets=new float[catalog.Length];
+            bool previousBurst=false;
+            for(int i=1;i<spawnOffsets.Length;i++)
+            {
+                // Normalde 8–12 sn; bazen bir ek afet 1–3 sn sonra gelir.
+                // İki kısa aralık arka arkaya üretilmez.
+                bool burst=spawnInterval<=0 && i>1 && !previousBurst && random.NextDouble()<.25;
+                float interval=spawnInterval>0?spawnInterval:burst?1f+(float)random.NextDouble()*2f:8f+(float)random.NextDouble()*4f;
+                spawnOffsets[i]=spawnOffsets[i-1]+interval;
+                previousBurst=burst;
+            }
             active.Clear();
             OpenCard = null;
             nextIndex = 0;
@@ -80,7 +92,7 @@ namespace Pixamor
             while (session.State == SessionState.Running)
             {
                 float spawnAt = nextIndex < catalog.Length
-                    ? Mathf.Max(0f, firstCrisisTime) + nextIndex * Mathf.Max(1f, spawnInterval)
+                    ? Mathf.Max(0f, firstCrisisTime) + spawnOffsets[nextIndex]
                     : float.PositiveInfinity;
                 ActiveCrisis expired = null;
                 foreach (var crisis in active)
@@ -164,4 +176,5 @@ namespace Pixamor
         }
     }
 }
+
 
