@@ -13,6 +13,10 @@ namespace Pixamor
         private AudioSource source;
         private AudioClip notification;
         private AudioClip alarm;
+        private AudioClip confirmation;
+        private AudioClip missed;
+        private AudioClip cardOpen;
+        private ActiveCrisis previousCard;
         private AudioClip victory;
         private AudioClip defeat;
         private bool wasCritical;
@@ -26,6 +30,9 @@ namespace Pixamor
             source.playOnAwake = false;
             source.loop = false;
             source.spatialBlend = 0f;
+            confirmation = CreateTone("Mudahale", 850f, 1200f, .18f);
+            missed = CreateTone("KrizKacirildi", 330f, 240f, .3f);
+            cardOpen = CreateTone("KartAcildi", 1100f, 1350f, .09f);
             notification = CreateTone("YeniKriz", 700f, 1000f, .3f);
             alarm = CreateTone("KritikAlarm", 500f, 350f, .5f);
             victory = CreateTone("VardiyaBasarili", 600f, 900f, .6f);
@@ -35,6 +42,7 @@ namespace Pixamor
         private void OnEnable()
         {
             crises.CrisisSpawned += OnCrisisSpawned;
+            crises.CrisisResolved += OnCrisisResolved;
             session.Ended += OnEnded;
             session.Restarted += ResetFeedback;
         }
@@ -42,6 +50,7 @@ namespace Pixamor
         private void OnDisable()
         {
             crises.CrisisSpawned -= OnCrisisSpawned;
+            crises.CrisisResolved -= OnCrisisResolved;
             session.Ended -= OnEnded;
             session.Restarted -= ResetFeedback;
             source.Stop();
@@ -50,8 +59,13 @@ namespace Pixamor
         private void Update()
         {
             if (session.State != SessionState.Running || session.IsPaused) return;
+            if (crises.OpenCard != previousCard)
+            {
+                if (crises.OpenCard != null) Play(cardOpen);
+                previousCard = crises.OpenCard;
+            }
             bool critical = session.HasHappinessWarning || session.HasClimateWarning;
-            // Gerçek süre değil oyun süresi kullanılır; kart açıkken alarm tekrarlanmaz.
+            // Alarm oyun saatini izler; yalnızca menüde veya oyun duraklatıldığında susar.
             if (critical && (!wasCritical || session.ElapsedTime - lastAlarmTime >= alarmInterval))
             {
                 Play(alarm);
@@ -62,6 +76,12 @@ namespace Pixamor
 
         private void OnCrisisSpawned(ActiveCrisis crisis) { Play(notification); }
 
+        private void OnCrisisResolved(bool failed)
+        {
+            // Bitiş melodisini aynı karede başka bir sesle örtmeyelim.
+            if (session.State == SessionState.Running) Play(failed ? missed : confirmation);
+        }
+
         private void OnEnded(SessionState state)
         {
             source.Stop();
@@ -71,6 +91,7 @@ namespace Pixamor
         private void ResetFeedback()
         {
             source.Stop();
+            previousCard = null;
             wasCritical = false;
             lastAlarmTime = 0f;
         }
@@ -101,6 +122,9 @@ namespace Pixamor
 
         private void OnDestroy()
         {
+            Destroy(confirmation);
+            Destroy(missed);
+            Destroy(cardOpen);
             Destroy(notification);
             Destroy(alarm);
             Destroy(victory);

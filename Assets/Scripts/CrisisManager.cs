@@ -31,6 +31,7 @@ namespace Pixamor
         public int MissedCount { get; private set; }
         public string LastResult { get; private set; }
         public event Action<ActiveCrisis> CrisisSpawned;
+        public event Action<bool> CrisisResolved;
 
         private void Awake()
         {
@@ -188,6 +189,7 @@ namespace Pixamor
             if (OpenCard == crisis) CloseCard();
             // Sayaç ve sayılar, bitiş bildirimi gönderilmeden önce güncellenir.
             session.TryApplyIntervention(result.Cost, result.HappinessChange, result.ClimateChange);
+            CrisisResolved?.Invoke(timedOut || !result.IsIntervention);
         }
 
         private void OnSessionEnded(SessionState state)
