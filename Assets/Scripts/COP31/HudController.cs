@@ -422,7 +422,7 @@ namespace Pixamor.ClimateOS
 
             if (authorityText != null)
             {
-                authorityText.text = $"Otorite <color=#A855F7><b>{mgr.Authority}</b></color>   İmza <color=#E2E8F0><b>{mgr.RemainingSignatures}/{mgr.maxDailySignatures}</b></color>";
+                authorityText.text = $"Otorite <color=#A855F7><b>{mgr.Authority}</b></color>   Görev <color=#10B981><b>{mgr.DailyTasksCompleted}/{mgr.DailyTasksTarget}</b></color>   İmza <color=#E2E8F0><b>{mgr.RemainingSignatures}/{mgr.maxDailySignatures}</b></color>";
             }
 
             if (dayText != null)

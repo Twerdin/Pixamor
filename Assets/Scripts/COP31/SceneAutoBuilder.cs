@@ -426,6 +426,7 @@ namespace Pixamor.ClimateOS
             var stationGo = new GameObject("Computer_Workstation");
             stationGo.transform.position = worldPos;
             stationGo.transform.rotation = worldRot;
+            stationGo.transform.localScale = new Vector3(1.6f, 1.6f, 1.6f);
 
             var stationTrigger = stationGo.AddComponent<BoxCollider>();
             stationTrigger.isTrigger = true;
@@ -449,7 +450,7 @@ namespace Pixamor.ClimateOS
             Greybox.Box("Monitor_Frame", monitorHead, Vector3.zero, new Vector3(0.945f, 0.525f, 0.024f), new Color(0.06f, 0.09f, 0.16f), unlit: false, collider: true);
 
             // 2. CameraFocusPoint
-            var focusPoint = Greybox.Empty("CameraFocusPoint", monitorHead, new Vector3(0f, 0f, -0.62f), Vector3.zero);
+            var focusPoint = Greybox.Empty("CameraFocusPoint", monitorHead, new Vector3(0f, 0f, -0.665f), Vector3.zero);
             station.cameraFocusPoint = focusPoint;
 
             // 3. World-Space Monitor_OS_Canvas (624x344 px, Scale: 0.0015 -> 0.936m x 0.516m)
@@ -627,10 +628,9 @@ namespace Pixamor.ClimateOS
         {
             var pinRoot = Greybox.Empty($"Pin_{contIndex}_{contName}", parent, new Vector3(localX, localY, -0.022f));
 
-            // KURAL 2: Kriz pinlerinde 3D PointLight KESİNLİKLE YOK; yalnızca materyal ve UI renk değerleri kullanılır.
-            Greybox.Prim(PrimitiveType.Cylinder, "Ring", pinRoot, Vector3.zero, new Vector3(0.018f, 0.002f, 0.018f), new Color(0.06f, 0.73f, 0.51f), unlit: true, collider: false);
-
-            var sphereGo = Greybox.Prim(PrimitiveType.Sphere, "Beacon", pinRoot, new Vector3(0f, 0.008f, 0f), new Vector3(0.020f, 0.020f, 0.020f), new Color(0.98f, 0.44f, 0.52f), unlit: true, collider: true);
+            var pinCol = pinRoot.gameObject.AddComponent<BoxCollider>();
+            pinCol.center = new Vector3(0f, 0.026f, 0f);
+            pinCol.size = new Vector3(0.14f, 0.035f, 0.02f);
 
             var pinCanvas = Greybox.WorldCanvas("Canvas", pinRoot, new Vector3(0f, 0.026f, 0f), Vector3.zero, new Vector2(0.14f, 0.028f), 750f);
             var pCanvas = pinCanvas.GetComponent<Canvas>();
@@ -645,8 +645,8 @@ namespace Pixamor.ClimateOS
             var pinIcon = Greybox.Icon(pinBadge, "map_pin_crisis", 3f, 2f, 16f, 16f, Color.white);
             var titleTxt = Greybox.Label(pinBadge, contName, 8, new Color(0.97f, 0.98f, 0.99f), TextAnchor.MiddleLeft, 22f, 2f, 80f, 17f, FontStyle.Bold);
 
-            var pin = sphereGo.AddComponent<WorldMapPin>();
-            pin.pinRenderer = sphereGo.GetComponent<Renderer>();
+            var pin = pinRoot.gameObject.AddComponent<WorldMapPin>();
+            pin.pinRenderer = null;
             pin.pinIconImage = pinIcon;
             pin.titleText = titleTxt;
             pin.uiRoot = pinCanvas.gameObject;

@@ -47,6 +47,7 @@ namespace Pixamor.ClimateOS
         void Start()
         {
             deferredCrises.Clear();
+            WorldMapMonitorController.Instance?.EnsureInitialized();
             SpawnNewDailyCrises(3);
         }
 

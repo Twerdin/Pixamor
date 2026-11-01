@@ -42,6 +42,8 @@ namespace Pixamor.ClimateOS
 
         public int CurrentDay { get; private set; } = 1;
         public int RemainingSignatures { get; private set; } = 3;
+        public int DailyTasksTarget { get; private set; } = 3;
+        public int DailyTasksCompleted { get; private set; } = 0;
         public bool IsDayTransitioning { get; private set; }
 
         public GameState State { get; private set; } = GameState.Playing;
@@ -78,6 +80,8 @@ namespace Pixamor.ClimateOS
             Authority = startAuthority;
             CurrentDay = 1;
             RemainingSignatures = maxDailySignatures;
+            DailyTasksTarget = 3;
+            DailyTasksCompleted = 0;
             IsDayTransitioning = false;
             State = GameState.Playing;
             EndReason = "";
@@ -158,8 +162,9 @@ namespace Pixamor.ClimateOS
                 ? ContinentCrisisSpawner.Instance.GetActiveCrisisCount()
                 : 0;
 
-            // KURAL 5: Bir günün ilerlemesi SADECE o güne ait tüm kriz/görev dosyaları tamamlandığında otomatik gerçekleşir.
-            if (activeCrises <= 0 || RemainingSignatures <= 0)
+            // KURAL 5: Bir günün ilerlemesi SADECE o güne ait tüm (3) kriz/görev dosyaları tamamlandığında gerçekleşir.
+            // Görevler bitmeden ASLA diğer güne geçilmez!
+            if (DailyTasksCompleted >= DailyTasksTarget && activeCrises <= 0)
             {
                 AdvanceDay();
             }
@@ -215,6 +220,8 @@ namespace Pixamor.ClimateOS
 
             CurrentDay = newDay;
             RemainingSignatures = maxDailySignatures;
+            DailyTasksTarget = 3;
+            DailyTasksCompleted = 0;
             Authority = Mathf.Clamp(Authority + 1, 0, 15);
 
             Sfx.Play(SfxType.Click);
@@ -284,6 +291,7 @@ namespace Pixamor.ClimateOS
                 cont.loyalty = Mathf.Clamp(cont.loyalty - choice.angerDelta * 0.4f, 0f, 100f);
 
             ResolvedCount++;
+            DailyTasksCompleted++;
             ConsumeSignature();
 
             Sfx.Play(choice.iklimDelta >= 0 ? SfxType.Success : SfxType.Alarm);
@@ -314,6 +322,7 @@ namespace Pixamor.ClimateOS
             cont.anger = Mathf.Clamp(cont.anger - 20f, 0f, 100f);
 
             ResolvedCount++;
+            DailyTasksCompleted++;
             ConsumeSignature();
 
             Sfx.Play(SfxType.Success);
@@ -342,6 +351,7 @@ namespace Pixamor.ClimateOS
                 WorldMapMonitorController.Instance?.RefreshContinentVisuals(cont.type);
             }
 
+            DailyTasksCompleted++;
             ConsumeSignature();
             Sfx.Play(SfxType.Fail);
             Post($"KANIT KARARTILDI — {cont?.name}: Lobi avukatları dosyayı kapattı! İklim ve Kamuoyu düştü.");
@@ -376,6 +386,7 @@ namespace Pixamor.ClimateOS
             if (State != GameState.Playing || cont == null) return;
 
             DeferredCount++;
+            DailyTasksCompleted++;
             ConsumeSignature();
 
             Sfx.Play(SfxType.Lever);

@@ -58,6 +58,8 @@ namespace Pixamor.ClimateOS
         float activeDecisionMaxTime = 20f;
         float activeDecisionTimeLeft = 20f;
         bool falseAccusationTriggeredOnCurrent;
+        int lastKnownMoney = -1;
+        int lastKnownAuthority = -1;
 
         void OnEnable()
         {
@@ -132,6 +134,23 @@ namespace Pixamor.ClimateOS
                 var found = GameObject.Find("World_Map_3D_Group");
                 if (found != null) backgroundMap3D = found;
             }
+
+            if (choiceTexts == null || choiceTexts.Length < 3 || choiceTexts[0] == null)
+            {
+                if (choiceTexts == null || choiceTexts.Length < 3) choiceTexts = new UnityEngine.UI.Text[3];
+                for (int i = 0; i < 3; i++)
+                {
+                    if (choiceTexts[i] == null && rootObject != null)
+                    {
+                        var cardT = rootObject.transform.Find($"Choice_Card_{i + 1}");
+                        if (cardT != null)
+                        {
+                            var t = cardT.GetComponentInChildren<UnityEngine.UI.Text>();
+                            if (t != null) choiceTexts[i] = t;
+                        }
+                    }
+                }
+            }
         }
 
         void Update()
@@ -147,6 +166,13 @@ namespace Pixamor.ClimateOS
 
             if (SanctionMiniGameUI.Instance != null && SanctionMiniGameUI.Instance.IsActive)
                 return;
+
+            if (mgr != null && (mgr.Money != lastKnownMoney || mgr.Authority != lastKnownAuthority))
+            {
+                lastKnownMoney = mgr.Money;
+                lastKnownAuthority = mgr.Authority;
+                RefreshDisplay();
+            }
 
             // KURAL 6: 10 sn / 20 sn / 30 sn hızla eriyen karar süresi çubuğu (bar_timer_urgent.png)
             activeDecisionTimeLeft -= Time.deltaTime;
@@ -200,6 +226,12 @@ namespace Pixamor.ClimateOS
 
             if (backgroundMap2D != null) backgroundMap2D.SetActive(false);
             if (backgroundMap3D != null) backgroundMap3D.SetActive(false);
+
+            if (ClimateOperatorManager.Instance != null)
+            {
+                lastKnownMoney = ClimateOperatorManager.Instance.Money;
+                lastKnownAuthority = ClimateOperatorManager.Instance.Authority;
+            }
 
             rootObject.SetActive(true);
             RefreshDisplay();
@@ -289,44 +321,111 @@ namespace Pixamor.ClimateOS
                     descriptionText.text = q.description;
                 }
 
-                // KURAL 4: Karar/seçim butonlarında (1, 2, 3) maliyet, kazanç ve sonuç açıklamaları TAMAMEN GİZLİ;
-                // sadece oyuncunun vereceği kararın saf diyalog/eylem cümlesi yazar.
+                // Karar/seçim butonlarında (1, 2, 3) eylem metni ve net Para/Otorite gereksinimleri belirtilir.
                 if (choiceTexts != null && q.choices != null)
                 {
-                    if (choiceTexts.Length > 0 && choiceTexts[0] != null && q.choices.Length > 0)
+                    for (int i = 0; i < choiceTexts.Length && i < q.choices.Length; i++)
                     {
-                        choiceTexts[0].text = q.choices[0].decisionText;
-                        if (choiceBgImages != null && choiceBgImages.Length > 0 && choiceBgImages[0] != null)
-                            Greybox.ApplySprite(choiceBgImages[0], "btn_choice_aqua", sliced: true);
-                    }
+                        if (choiceTexts[i] == null) continue;
 
-                    if (choiceTexts.Length > 1 && choiceTexts[1] != null && q.choices.Length > 1)
-                    {
-                        choiceTexts[1].text = q.choices[1].decisionText;
-                        if (choiceBgImages != null && choiceBgImages.Length > 1 && choiceBgImages[1] != null)
-                            Greybox.ApplySprite(choiceBgImages[1], "btn_choice_aqua", sliced: true);
-                    }
+                        choiceTexts[i].verticalOverflow = VerticalWrapMode.Overflow;
+                        choiceTexts[i].text = FormatChoiceText(q.choices[i], i, currentContinent.isDeferredDoubled);
 
-                    if (choiceTexts.Length > 2 && choiceTexts[2] != null && q.choices.Length > 2)
-                    {
-                        choiceTexts[2].text = q.choices[2].decisionText;
-                        if (choiceBgImages != null && choiceBgImages.Length > 2 && choiceBgImages[2] != null)
-                            Greybox.ApplySprite(choiceBgImages[2], "btn_choice_aqua", sliced: true);
+                        if (choiceBgImages != null && i < choiceBgImages.Length && choiceBgImages[i] != null)
+                            Greybox.ApplySprite(choiceBgImages[i], "btn_choice_aqua", sliced: true);
                     }
                 }
             }
 
-            // Alt Kısım: 2 Sade Bakanlık Müdahalesi Butonu (Maliyetsiz saf başlık)
+            // Alt Kısım: 2 Bakanlık Müdahalesi Butonu (Net Para ve Otorite Maliyeti)
+            var operatorMgr = ClimateOperatorManager.Instance;
+            int bCost = operatorMgr != null ? operatorMgr.budgetSupportCost : 22;
+            int aCost = operatorMgr != null ? operatorMgr.auditAuthorityCost : 2;
+            bool canAffordB = operatorMgr == null || operatorMgr.Money >= bCost;
+            bool canAffordA = operatorMgr == null || operatorMgr.Authority >= aCost;
+
             if (budgetSupportText != null)
             {
-                budgetSupportText.text = "<b>Bütçe Desteği Sağla</b>";
+                string bColor = canAffordB ? "#F59E0B" : "#EF4444";
+                string bWarn = canAffordB ? "" : " (Yetersiz)";
+                budgetSupportText.text = $"<b>Bütçe Desteği Sağla</b>  <size=8><color={bColor}>(-${bCost} Bütçe{bWarn})</color></size>";
             }
 
             if (auditPressureText != null)
             {
-                auditPressureText.text = currentContinent.IsPuppet
-                    ? "<b>Denetim Raporu Uygulandı</b>"
-                    : "<b>Denetim Raporuyla Baskı Kur</b>";
+                if (currentContinent.IsPuppet)
+                {
+                    auditPressureText.text = "<color=#94A3B8><b>Denetim Raporu Uygulandı</b></color>";
+                }
+                else
+                {
+                    string aColor = canAffordA ? "#C084FC" : "#EF4444";
+                    string aWarn = canAffordA ? "" : " (Yetersiz)";
+                    auditPressureText.text = $"<b>Denetim Raporuyla Baskı Kur</b>  <size=8><color={aColor}>({aCost} Otorite{aWarn})</color></size>";
+                }
+            }
+        }
+
+        string FormatChoiceText(BlindChoice choice, int choiceIndex, bool isDeferredDoubled)
+        {
+            if (choice == null) return "";
+
+            var mgr = ClimateOperatorManager.Instance;
+            string cleanText = choice.decisionText ?? "";
+            cleanText = cleanText.Replace("(1 Otorite)", "").Replace("( 1 Otorite)", "").Trim();
+
+            string moneyStr;
+            string authStr;
+
+            if (choiceIndex == 0)
+            {
+                // Seçim 1: Tavizsiz Yaptırım / Acil Saha Müdahalesi (Bütçe harcar + 1 Otorite gerekir)
+                int cost = choice.moneyDelta < 0 ? -choice.moneyDelta : 0;
+                bool hasMoney = mgr == null || mgr.Money >= cost;
+                bool hasAuth = mgr == null || mgr.Authority >= 1;
+
+                moneyStr = cost > 0
+                    ? (hasMoney ? $"<color=#F59E0B>-${cost} Bütçe</color>" : $"<color=#EF4444>-${cost} Bütçe (Yetersiz)</color>")
+                    : "<color=#94A3B8>$0 Bütçe</color>";
+
+                authStr = hasAuth
+                    ? "<color=#C084FC>1 Otorite</color>"
+                    : "<color=#EF4444>1 Otorite (Yetersiz)</color>";
+
+                return $"<size=8>{cleanText}</size>\n<size=7><color=#64748B>Gereksinim:</color>  {moneyStr}   <color=#475569>•</color>   {authStr}</size>";
+            }
+            else if (choiceIndex == 1)
+            {
+                // Seçim 2: Kademeli Teknoloji & Yeşil Dönüşüm Teşviği (Bütçe harcar, 0 Otorite)
+                int cost = choice.moneyDelta < 0 ? -choice.moneyDelta : 0;
+                bool hasMoney = mgr == null || mgr.Money >= cost;
+
+                moneyStr = cost > 0
+                    ? (hasMoney ? $"<color=#F59E0B>-${cost} Bütçe</color>" : $"<color=#EF4444>-${cost} Bütçe (Yetersiz)</color>")
+                    : (choice.moneyDelta > 0 ? $"<color=#10B981>+${choice.moneyDelta} Bütçe</color>" : "<color=#94A3B8>$0 Bütçe</color>");
+
+                authStr = "<color=#94A3B8>0 Otorite</color>";
+
+                return $"<size=8>{cleanText}</size>\n<size=7><color=#64748B>Gereksinim:</color>  {moneyStr}   <color=#475569>•</color>   {authStr}</size>";
+            }
+            else
+            {
+                // Seçim 3: Ertelenmiş veya Normal Erteleme
+                if (!isDeferredDoubled)
+                {
+                    // İlk kriz anında: 3 gün sonra 2x etkiyle dönmek üzere erteler (Maliyetsiz)
+                    moneyStr = "<color=#94A3B8>$0 Bütçe</color>";
+                    authStr = "<color=#94A3B8>0 Otorite</color>";
+                    return $"<size=8>{cleanText}</size>\n<size=7><color=#64748B>Gereksinim:</color>  {moneyStr}   <color=#475569>•</color>   {authStr}   <color=#475569>•</color>   <color=#F59E0B>(3 Gün Ertele)</color></size>";
+                }
+                else
+                {
+                    // 2x Ertelenmiş krizde: Sanayi tavizi kabul edilir (+Para ve +1 Otorite kazandırır)
+                    int gain = choice.moneyDelta > 0 ? choice.moneyDelta : 20;
+                    moneyStr = $"<color=#10B981>+${gain} Bütçe</color>";
+                    authStr = "<color=#10B981>+1 Otorite Kazandırır</color>";
+                    return $"<size=8>{cleanText}</size>\n<size=7><color=#64748B>Gereksinim:</color>  {moneyStr}   <color=#475569>•</color>   {authStr}</size>";
+                }
             }
         }
 

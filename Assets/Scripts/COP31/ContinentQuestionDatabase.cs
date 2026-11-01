@@ -344,7 +344,7 @@ namespace Pixamor.ClimateOS
                     {
                         new BlindChoice
                         {
-                            decisionText = "Bakanlık yetkisini kullanarak tavizsiz yaptırım ve ağır emisyon cezası uygula. (1 Otorite)",
+                            decisionText = "Bakanlık yetkisini kullanarak tavizsiz yaptırım ve ağır emisyon cezası uygula.",
                             moneyDelta = -28, halkDelta = -6, iklimDelta = 7,
                             continentHealthDelta = 12f, angerDelta = 14f,
                             factoryDelta = -18f, pollutionDelta = -20f, treeDelta = 8f, renewableDelta = 12f,
@@ -655,7 +655,7 @@ namespace Pixamor.ClimateOS
                     {
                         new BlindChoice
                         {
-                            decisionText = "Halkın ve bilim kurulunun talebini derhal onayla; acil saha müdahalesi ve koruma başlat. (1 Otorite)",
+                            decisionText = "Halkın ve bilim kurulunun talebini derhal onayla; acil saha müdahalesi ve koruma başlat.",
                             moneyDelta = -32, halkDelta = -6, iklimDelta = 6,
                             continentHealthDelta = 10f, angerDelta = -10f,
                             pollutionDelta = -14f, treeDelta = 10f, foodDelta = 10f, renewableDelta = 8f,

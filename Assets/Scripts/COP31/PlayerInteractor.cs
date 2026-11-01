@@ -223,21 +223,19 @@ namespace Pixamor.ClimateOS
 
             if (playerCamera != null && workstation != null)
             {
-                Transform focusRef = workstation.cameraFocusPoint != null
-                    ? workstation.cameraFocusPoint
-                    : (workstation.monitorHead != null ? workstation.monitorHead : workstation.transform);
+                Transform monitorRef = workstation.monitorHead != null ? workstation.monitorHead : workstation.transform;
 
-                Vector3 toMonitor = focusRef.position - playerCamera.transform.position;
+                Vector3 toMonitor = monitorRef.position - playerCamera.transform.position;
                 float dist = toMonitor.magnitude;
                 float dot = Vector3.Dot(playerCamera.transform.forward, toMonitor.normalized);
 
-                // Monitör yönüne bakıyor mu? (dot > 0.60: ~53 derece)
-                bool isFacingMonitor = dot > 0.60f;
+                // Monitör yönüne bakıyor mu? Geniş koni (dot > 0.35f: ~70 derece)
+                bool isFacingMonitor = dot > 0.35f;
 
-                if (dist <= 3.2f && isFacingMonitor)
+                if (dist <= 3.8f && isFacingMonitor)
                 {
                     Ray centerRay = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-                    if (Physics.Raycast(centerRay, out RaycastHit hit, 3.5f, ~0, QueryTriggerInteraction.Collide))
+                    if (Physics.Raycast(centerRay, out RaycastHit hit, 4.0f, ~0, QueryTriggerInteraction.Collide))
                     {
                         var station = hit.collider.GetComponentInParent<MovableComputerStation>();
                         if (station != null || hit.collider.transform.IsChildOf(workstation.transform) || hit.collider.transform == workstation.transform)
@@ -246,7 +244,7 @@ namespace Pixamor.ClimateOS
                             hovered = workstation;
                         }
                     }
-                    else if (dist <= 2.2f)
+                    if (!isNearWorkstation && dist <= 2.8f)
                     {
                         // Masanın önünde ve monitöre bakıyorsa raycast kaçsa bile etkileşime izin ver
                         isNearWorkstation = true;

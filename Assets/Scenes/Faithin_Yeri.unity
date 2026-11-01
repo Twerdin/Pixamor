@@ -215,7 +215,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1706086
 Transform:
   m_ObjectHideFlags: 0
@@ -616,7 +616,7 @@ Transform:
   m_GameObject: {fileID: 39793204}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.62}
+  m_LocalPosition: {x: 0, y: 0, z: -0.665}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1760,7 +1760,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &124590327
 Transform:
   m_ObjectHideFlags: 0
@@ -2189,7 +2189,7 @@ MonoBehaviour:
   hoverLabel: 
   isInteractable: 1
   continentIndex: 0
-  pinRenderer: {fileID: 165611237}
+  pinRenderer: {fileID: 0}
   pinIconImage: {fileID: 7727594}
   titleText: {fileID: 1873864258}
   uiRoot: {fileID: 1639284338}
@@ -2200,7 +2200,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 165611234}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -2261,8 +2261,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Radius: 3.5
+  m_Center: {x: 0, y: 0.02, z: 0}
 --- !u!33 &165611239
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -4228,7 +4228,7 @@ MonoBehaviour:
   hoverLabel: 
   isInteractable: 1
   continentIndex: 1
-  pinRenderer: {fileID: 417897060}
+  pinRenderer: {fileID: 0}
   pinIconImage: {fileID: 1471407575}
   titleText: {fileID: 520429514}
   uiRoot: {fileID: 790899474}
@@ -4239,7 +4239,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 417897057}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -4300,8 +4300,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Radius: 3.5
+  m_Center: {x: 0, y: 0.02, z: 0}
 --- !u!33 &417897062
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -8194,7 +8194,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.15, y: 0.8000001, z: 0.5799998}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.6, y: 1.6, z: 1.6}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 534392442}
@@ -10052,7 +10052,7 @@ MonoBehaviour:
   hoverLabel: 
   isInteractable: 1
   continentIndex: 3
-  pinRenderer: {fileID: 959844230}
+  pinRenderer: {fileID: 0}
   pinIconImage: {fileID: 1062078791}
   titleText: {fileID: 1875340794}
   uiRoot: {fileID: 1833568127}
@@ -10063,7 +10063,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 959844227}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -10124,8 +10124,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Radius: 3.5
+  m_Center: {x: 0, y: 0.02, z: 0}
 --- !u!33 &959844232
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -12249,7 +12249,7 @@ MonoBehaviour:
   hoverLabel: 
   isInteractable: 1
   continentIndex: 5
-  pinRenderer: {fileID: 1221420855}
+  pinRenderer: {fileID: 0}
   pinIconImage: {fileID: 1022015569}
   titleText: {fileID: 756160702}
   uiRoot: {fileID: 1973900996}
@@ -12260,7 +12260,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1221420852}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -12321,8 +12321,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Radius: 3.5
+  m_Center: {x: 0, y: 0.02, z: 0}
 --- !u!33 &1221420857
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -13643,7 +13643,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1367609298
 Transform:
   m_ObjectHideFlags: 0
@@ -14484,7 +14484,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1467735127
 Transform:
   m_ObjectHideFlags: 0
@@ -15982,7 +15982,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1657100155
 Transform:
   m_ObjectHideFlags: 0
@@ -16178,7 +16178,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1691963321
 Transform:
   m_ObjectHideFlags: 0
@@ -16301,7 +16301,7 @@ MonoBehaviour:
   hoverLabel: 
   isInteractable: 1
   continentIndex: 4
-  pinRenderer: {fileID: 1692899807}
+  pinRenderer: {fileID: 0}
   pinIconImage: {fileID: 159025336}
   titleText: {fileID: 2020731632}
   uiRoot: {fileID: 330708958}
@@ -16312,7 +16312,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1692899804}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -16373,8 +16373,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Radius: 3.5
+  m_Center: {x: 0, y: 0.02, z: 0}
 --- !u!33 &1692899809
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -17974,7 +17974,7 @@ MonoBehaviour:
   hoverLabel: 
   isInteractable: 1
   continentIndex: 2
-  pinRenderer: {fileID: 1825443783}
+  pinRenderer: {fileID: 0}
   pinIconImage: {fileID: 1632638265}
   titleText: {fileID: 1331312621}
   uiRoot: {fileID: 1924504342}
@@ -17985,7 +17985,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1825443780}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -18046,8 +18046,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Radius: 3.5
+  m_Center: {x: 0, y: 0.02, z: 0}
 --- !u!33 &1825443785
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -18547,7 +18547,7 @@ MonoBehaviour:
   hoverLabel: 
   isInteractable: 1
   continentIndex: 6
-  pinRenderer: {fileID: 1871813881}
+  pinRenderer: {fileID: 0}
   pinIconImage: {fileID: 808048317}
   titleText: {fileID: 409879134}
   uiRoot: {fileID: 84365992}
@@ -18558,7 +18558,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1871813878}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -18619,8 +18619,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Radius: 3.5
+  m_Center: {x: 0, y: 0.02, z: 0}
 --- !u!33 &1871813883
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -20430,7 +20430,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2018321566
 Transform:
   m_ObjectHideFlags: 0
