@@ -1,9 +1,9 @@
 using System;
 using UnityEngine;
 
-namespace Pixamor.COP31
+namespace Pixamor.ClimateOS
 {
-    /// <summary>Basılınca kapağı içeri gidip geri gelen (Lerp) fiziksel buton.</summary>
+    /// <summary>Basılınca kapağı içeri gidip geri gelen (Lerp) fiziksel/3D UI butonu.</summary>
     public class PressButton : Interactable
     {
         public Transform cap;
@@ -13,8 +13,16 @@ namespace Pixamor.COP31
 
         public event Action Pressed;
 
-        Vector3 capRest;
+        [SerializeField] Vector3 capRest;
         float pressT;
+
+        void Awake()
+        {
+            if (cap != null && capRest == Vector3.zero)
+            {
+                capRest = cap.localPosition;
+            }
+        }
 
         public void Setup(Transform capTransform, Vector3 offset, string label)
         {

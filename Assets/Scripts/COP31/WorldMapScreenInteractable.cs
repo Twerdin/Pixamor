@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Pixamor.COP31
+namespace Pixamor.ClimateOS
 {
     /// <summary>
     /// Monitör ekranı yüzeyindeki 3D BoxCollider'a takılan etkileşim bileşeni.
