@@ -1,17 +1,168 @@
+using System.IO;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
-namespace Pixamor.COP31
+namespace Pixamor.ClimateOS
 {
     /// <summary>
-    /// Primitive + World-Space UI üretim yardımcıları. Dışarıdan hiçbir asset gerektirmez.
+    /// V3: Aqua-Modern (Su Yeşili / Seafoam - 60-30-10 Kuralı) İklim Bakanlığı OS UI ve 3D Sahne Üretim Yardımcıları.
+    /// KURAL: Hiçbir panel, kart, buton veya bar sprite = null olan düz renkli kutu OLAMAZ.
+    /// Tüm UI elemanları Assets/UI/EcoModern_Sprites altındaki 25+ gerçek RGBA PNG Sprite dosyasını kullanır ve Image.color = Color.white korunur.
     /// </summary>
     public static class Greybox
     {
         static Font font;
         static Shader litShader;
         static Shader unlitShader;
+
+        public static Vector4 GetBorderForSprite(string spriteName)
+        {
+            if (spriteName == "bar_bg_pill" ||
+                spriteName == "bar_fill_aqua" ||
+                spriteName == "bar_fill_climate" ||
+                spriteName == "bar_fill_public" ||
+                spriteName == "bar_timer_urgent" ||
+                spriteName == "ring_budget_15s" ||
+                spriteName == "minigame_target_zone" ||
+                spriteName == "bar_bg_eco" ||
+                spriteName == "bar_fill_eco")
+            {
+                return new Vector4(8, 4, 8, 4);
+            }
+
+            if (spriteName == "minigame_cursor_needle")
+            {
+                return new Vector4(6, 8, 6, 8);
+            }
+
+            if (spriteName == "panel_main_aqua" ||
+                spriteName == "panel_telemetry_glass" ||
+                spriteName == "panel_minigame_frame" ||
+                spriteName == "card_stat_top_aqua" ||
+                spriteName == "card_stat_climate" ||
+                spriteName == "card_stat_public" ||
+                spriteName == "card_stat_budget" ||
+                spriteName == "card_dialogue_citizen" ||
+                spriteName == "card_dialogue_president" ||
+                spriteName == "badge_speaker_tag" ||
+                spriteName == "btn_choice_aqua" ||
+                spriteName == "btn_choice_hover" ||
+                spriteName == "btn_sanction_strike" ||
+                spriteName == "btn_bribe_lobby" ||
+                spriteName == "btn_header_utility" ||
+                spriteName == "panel_main_modal" ||
+                spriteName == "card_stat_top" ||
+                spriteName == "btn_action_green" ||
+                spriteName == "btn_secondary")
+            {
+                return new Vector4(16, 16, 16, 16);
+            }
+
+            return Vector4.zero;
+        }
+
+        public static Sprite LoadSprite(string spriteName)
+        {
+            if (string.IsNullOrEmpty(spriteName)) return null;
+            Vector4 border = GetBorderForSprite(spriteName);
+
+#if UNITY_EDITOR
+            string assetPath = $"Assets/UI/EcoModern_Sprites/{spriteName}.png";
+            if (!File.Exists(Path.Combine(Application.dataPath, $"UI/EcoModern_Sprites/{spriteName}.png")))
+            {
+                assetPath = $"Assets/UI/Sprites/{spriteName}.png";
+            }
+
+            var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if (importer != null)
+            {
+                bool changed = false;
+                if (importer.textureType != TextureImporterType.Sprite)
+                {
+                    importer.textureType = TextureImporterType.Sprite;
+                    changed = true;
+                }
+                if (importer.spriteImportMode != SpriteImportMode.Single)
+                {
+                    importer.spriteImportMode = SpriteImportMode.Single;
+                    changed = true;
+                }
+                if (!importer.alphaIsTransparency)
+                {
+                    importer.alphaIsTransparency = true;
+                    changed = true;
+                }
+                if (border != Vector4.zero && importer.spriteBorder != border)
+                {
+                    importer.spriteBorder = border;
+                    changed = true;
+                }
+                if (changed)
+                {
+                    importer.SaveAndReimport();
+                }
+            }
+
+            var editorSp = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+            if (editorSp != null) return editorSp;
+#endif
+            var sp = Resources.Load<Sprite>($"UI/EcoModern_Sprites/{spriteName}");
+            if (sp != null) return sp;
+
+            var tex = Resources.Load<Texture2D>($"UI/EcoModern_Sprites/{spriteName}");
+            if (tex != null)
+            {
+                return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
+            }
+
+            string diskPath = Path.Combine(Application.dataPath, $"UI/EcoModern_Sprites/{spriteName}.png");
+            if (File.Exists(diskPath))
+            {
+                byte[] bytes = File.ReadAllBytes(diskPath);
+                var dTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                if (dTex.LoadImage(bytes))
+                {
+                    return Sprite.Create(dTex, new Rect(0, 0, dTex.width, dTex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
+                }
+            }
+            return null;
+        }
+
+        public static void ApplySprite(Image img, string spriteName, bool sliced = true)
+        {
+            if (img == null) return;
+            var sp = LoadSprite(spriteName);
+            if (sp != null)
+            {
+                img.sprite = sp;
+                img.color = Color.white;
+                img.type = (sliced && sp.border != Vector4.zero) ? Image.Type.Sliced : Image.Type.Simple;
+            }
+        }
+
+        public static Image Icon(Transform parent, string spriteName, float x, float y, float w, float h, Color tint)
+        {
+            var go = new GameObject($"Icon_{spriteName}", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rt = (RectTransform)go.transform;
+            Place(rt, x, y, w, h);
+
+            var img = go.AddComponent<Image>();
+            img.raycastTarget = false;
+            var sp = LoadSprite(spriteName);
+            if (sp != null)
+            {
+                img.sprite = sp;
+                img.type = Image.Type.Simple;
+                img.preserveAspect = true;
+            }
+            img.color = Color.white;
+            return img;
+        }
 
         public static Font Font
         {
@@ -74,7 +225,7 @@ namespace Pixamor.COP31
         public static Transform Empty(string name, Transform parent, Vector3 localPos, Vector3 euler = default)
         {
             var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
+            if (parent != null) go.transform.SetParent(parent, false);
             go.transform.localPosition = localPos;
             go.transform.localRotation = Quaternion.Euler(euler);
             return go.transform;
@@ -85,7 +236,7 @@ namespace Pixamor.COP31
         {
             var go = GameObject.CreatePrimitive(type);
             go.name = name;
-            go.transform.SetParent(parent, false);
+            if (parent != null) go.transform.SetParent(parent, false);
             go.transform.localPosition = localPos;
             go.transform.localRotation = Quaternion.identity;
             go.transform.localScale = localScale;
@@ -101,7 +252,6 @@ namespace Pixamor.COP31
             }
             else if (type == PrimitiveType.Cylinder)
             {
-                // Basık silindirlerde kapsül collider bozuk olur; kutu ile değiştir.
                 Kill(col);
                 go.AddComponent<BoxCollider>();
             }
@@ -112,11 +262,10 @@ namespace Pixamor.COP31
             Color color, bool unlit = false, bool collider = true, bool castShadows = true) =>
             Prim(PrimitiveType.Cube, name, parent, localPos, localScale, color, unlit, collider, castShadows);
 
-        /// <summary>Görsel renderer içermeyen, yalnızca raycast/tıklama algılayan görünmez 3D kutu.</summary>
         public static GameObject TriggerBox(string name, Transform parent, Vector3 localPos, Vector3 localSize)
         {
             var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
+            if (parent != null) go.transform.SetParent(parent, false);
             go.transform.localPosition = localPos;
             go.transform.localRotation = Quaternion.identity;
             var col = go.AddComponent<BoxCollider>();
@@ -127,7 +276,7 @@ namespace Pixamor.COP31
         public static Light PointLight(string name, Transform parent, Vector3 pos, Color color, float intensity, float range)
         {
             var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
+            if (parent != null) go.transform.SetParent(parent, false);
             go.transform.localPosition = pos;
             var l = go.AddComponent<Light>();
             l.type = LightType.Point;
@@ -138,18 +287,20 @@ namespace Pixamor.COP31
             return l;
         }
 
-        // ---------------------------------------------------------------- UI
+        // ---------------------------------------------------------------- UI (100% PNG SPRITE TABANLI)
 
-        /// <summary>World-space canvas. Boyut metre cinsinden, içerik piksel cinsinden (ppm = piksel/metre).</summary>
         public static RectTransform WorldCanvas(string name, Transform parent, Vector3 localPos, Vector3 euler,
             Vector2 sizeMeters, float ppm)
         {
             var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
+            if (parent != null) go.transform.SetParent(parent, false);
             var canvas = go.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
+            if (Camera.main != null) canvas.worldCamera = Camera.main;
+
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = 2f;
+            go.AddComponent<GraphicRaycaster>();
 
             var rt = (RectTransform)go.transform;
             rt.sizeDelta = sizeMeters * ppm;
@@ -159,7 +310,6 @@ namespace Pixamor.COP31
             return rt;
         }
 
-        /// <summary>Sol-üst köşeye göre piksel yerleşimi (y aşağı doğru artar).</summary>
         public static void Place(RectTransform rt, float x, float y, float w, float h)
         {
             rt.anchorMin = new Vector2(0f, 1f);
@@ -199,50 +349,64 @@ namespace Pixamor.COP31
             t.alignment = anchor;
             t.fontStyle = style;
             t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
+            t.verticalOverflow = VerticalWrapMode.Truncate;
             t.supportRichText = true;
             t.raycastTarget = false;
             Place((RectTransform)go.transform, x, y, w, h);
             return t;
         }
 
-        public static Image Panel(Transform parent, Color color, float x, float y, float w, float h)
-        {
-            var img = Child(parent, "Panel", color).GetComponent<Image>();
-            Place((RectTransform)img.transform, x, y, w, h);
-            return img;
-        }
-
-        /// <summary>Image içeren boş bir RectTransform (anchor'ları çağıran ayarlar).</summary>
-        public static RectTransform Child(Transform parent, string name, Color color)
+        /// <summary>
+        /// 9-Slice PNG Sprite kullanan modern UI kartı / paneli / butonu oluşturur.
+        /// Image.color her zaman Color.white tutulur ki PNG'nin kendi gradyanı kararmasın.
+        /// </summary>
+        public static RectTransform SpriteBox(Transform parent, string name, string spriteName, float x, float y, float w, float h, bool raycast = false)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
             var img = go.AddComponent<Image>();
-            img.color = color;
+            img.raycastTarget = raycast;
+            ApplySprite(img, spriteName, sliced: true);
+            var rt = (RectTransform)go.transform;
+            Place(rt, x, y, w, h);
+            return rt;
+        }
+
+        public static RectTransform Child(Transform parent, string name, Color color, string spriteName = "card_stat_top_aqua")
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var img = go.AddComponent<Image>();
             img.raycastTarget = false;
+            ApplySprite(img, spriteName, sliced: true);
+            img.color = color.a <= 0.01f ? Color.clear : Color.white;
             return (RectTransform)go.transform;
         }
 
         public static UIBar Bar(Transform parent, float x, float y, float w, float h, Color bg, Color fill,
-            bool vertical = false)
+            bool vertical = false, string bgSprite = "bar_bg_pill", string fillSprite = "bar_fill_aqua")
         {
-            var bgImg = Panel(parent, bg, x, y, w, h);
-            var rt = Child(bgImg.transform, "Fill", fill);
-            rt.pivot = Vector2.zero;
-            Stretch(rt);
-            var bar = new UIBar(rt, rt.GetComponent<Image>(), vertical);
-            bar.Set(0f);
+            var bgRt = SpriteBox(parent, "Bar_Track", bgSprite, x, y, w, h, raycast: false);
+            var fillRt = SpriteBox(bgRt, "Bar_Fill", fillSprite, 0f, 0f, w, h, raycast: false);
+            fillRt.pivot = Vector2.zero;
+            Stretch(fillRt);
+
+            var fillImg = fillRt.GetComponent<Image>();
+            fillImg.color = Color.white;
+
+            var bar = new UIBar(fillRt, fillImg, vertical);
+            bar.Set(0.65f, Color.white);
             return bar;
         }
     }
 
-    /// <summary>Sprite gerektirmeyen, anchor tabanlı basit dolum barı.</summary>
+    /// <summary>Gerçek PNG Sprite (bar_bg_pill.png ve bar_fill_aqua.png / bar_timer_urgent.png) kullanan modern oval ilerleme çubuğu.</summary>
+    [System.Serializable]
     public sealed class UIBar
     {
-        readonly RectTransform fill;
-        readonly Image image;
-        readonly bool vertical;
+        [SerializeField] public RectTransform fill;
+        [SerializeField] public Image image;
+        [SerializeField] public bool vertical;
 
         public UIBar(RectTransform fill, Image image, bool vertical)
         {
@@ -259,12 +423,22 @@ namespace Pixamor.COP31
             fill.anchorMax = vertical ? new Vector2(1f, v) : new Vector2(v, 1f);
             fill.offsetMin = Vector2.zero;
             fill.offsetMax = Vector2.zero;
+
+            if (image != null && image.sprite == null)
+            {
+                Greybox.ApplySprite(image, "bar_fill_aqua", sliced: true);
+            }
         }
 
         public void Set(float value01, Color color)
         {
             Set(value01);
-            if (image != null) image.color = color;
+            if (image != null)
+            {
+                if (image.sprite == null)
+                    Greybox.ApplySprite(image, "bar_fill_aqua", sliced: true);
+                image.color = color;
+            }
         }
     }
 }

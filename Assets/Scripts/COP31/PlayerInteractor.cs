@@ -1,56 +1,69 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Pixamor.COP31
+namespace Pixamor.ClimateOS
 {
     /// <summary>
-    /// Birinci şahıs kamera ve oda içi serbest hareket:
-    /// - WASD / Ok tuşları ile odanın içinde serbest yürüme (Shift ile koşma).
-    /// - Fare kilitliyken ekran ortasından, imleç serbestken doğrudan fare okuyla tıklama/etkileşim.
-    /// - İmleç serbestken sağ tıkla sürükleyerek veya sol tıkla kilitleyerek 360 derece bakış.
-    /// - Escape ile imleci serbest bırakma.
+    /// İki Modlu Birinci Şahıs Karakter Kontrolcüsü (FirstPersonPlayer):
+    /// 1. Serbest Mod (Free Roam): WASD + Mouse Look + CharacterController ile 3D odada serbestçe yürüme.
+    ///    Bilgisayar istasyonuna (Computer_Workstation) yaklaşıp bakınca "[E] Bilgisayarı Kullan" uyarısı çıkar.
+    /// 2. Bilgisayar Modu (Monitor Focus): E tuşu veya Sol Tık ile karakterin yürümesi durur, kamera
+    ///    yumuşak bir geçişle (Lerp/Slerp) Computer_Workstation/CameraFocusPoint noktasına kilitlenir,
+    ///    fare imleci serbest kalır (CursorLockMode.None) ve tüm OS arayüzü fareyle yönetilir.
+    /// 3. Bilgisayardan Kalkma: ESC veya Sağ Tık ile kamera tekrar karakterin göz hizasına (PlayerCameraMount)
+    ///    döner ve odada serbest yürüyüş kaldığı yerden devam eder.
     /// </summary>
     public class PlayerInteractor : MonoBehaviour
     {
-        [Header("Bakış (Mouse Look)")]
+        public static PlayerInteractor Instance { get; private set; }
+
+        [Header("Bileşen Referansları (Edit Mode Kalıcı)")]
+        public CharacterController characterController;
+        public Transform cameraMount;
+        public Camera playerCamera;
+        public MovableComputerStation workstation;
+        public Transform monitorTarget;
+
+        [Header("Bakış (Mouse Look - Free Roam)")]
         public float sensitivity = 0.15f;
         public float pitchMin = -75f;
         public float pitchMax = 80f;
-        public bool full360Look = true;
 
-        [Header("Hareket (Movement)")]
+        [Header("Hareket (WASD Free Roam)")]
         public bool enableMovement = true;
-        public float moveSpeed = 3.6f;
-        public float sprintMultiplier = 1.75f;
-        public float eyeHeight = 1.45f;
-        public Vector2 xBounds = new Vector2(-3.6f, 3.6f);
-        public Vector2 zBounds = new Vector2(-2.4f, 3.6f);
+        public float moveSpeed = 2.8f;
+        public float sprintMultiplier = 1.6f;
+        public float gravity = -9.81f;
 
-        [Header("Etkileşim (Raycast)")]
-        public float maxDistance = 25f;
+        [Header("Etkileşim & Bilgisayar İstasyonu")]
+        public float maxDistance = 12f;
+        public float workstationInteractDistance = 2.25f;
+        public bool isNearWorkstation = false;
 
-        [Header("Monitör Tam Ekran (Fullscreen Mode)")]
+        [Header("Monitör Odak Modu (Monitor Focus Mode)")]
         public bool isFullscreen = false;
-        public Transform monitorTarget;
-        public float fullscreenFOV = 50f;
-        public float normalFOV = 65f;
-        public float focusDistance = 0.90f;
-        public float transitionSpeed = 9f;
+        public float fullscreenFOV = 46f;
+        public float normalFOV = 62f;
+        public float transitionSpeed = 10f;
 
-        public static PlayerInteractor Instance { get; private set; }
-
-        Camera cam;
         float yaw;
         float pitch;
+        float verticalVelocity;
         Interactable hovered;
         Interactable pressed;
 
         public Interactable Hovered => hovered;
         public static bool IsCursorLocked => Cursor.lockState == CursorLockMode.Locked;
 
+        void OnEnable()
+        {
+            Instance = this;
+        }
+
         void Awake()
         {
             Instance = this;
+            ResolveReferences();
         }
 
         void OnDestroy()
@@ -58,147 +71,322 @@ namespace Pixamor.COP31
             if (Instance == this) Instance = null;
         }
 
+        void ResolveReferences()
+        {
+            if (characterController == null)
+                characterController = GetComponent<CharacterController>();
+
+            if (cameraMount == null)
+            {
+                var foundMount = transform.Find("PlayerCameraMount");
+                cameraMount = foundMount != null ? foundMount : transform;
+            }
+
+            if (playerCamera == null)
+            {
+                playerCamera = GetComponentInChildren<Camera>();
+                if (playerCamera == null) playerCamera = Camera.main;
+            }
+
+            if (workstation == null)
+            {
+                workstation = MovableComputerStation.Instance;
+                if (workstation == null)
+                    workstation = FindAnyObjectByType<MovableComputerStation>();
+            }
+
+            if (monitorTarget == null && workstation != null)
+            {
+                monitorTarget = workstation.cameraFocusPoint != null ? workstation.cameraFocusPoint : workstation.monitorHead;
+            }
+        }
+
         public void Setup(Camera camera, float startPitch)
         {
-            cam = camera;
+            playerCamera = camera;
+            ResolveReferences();
+            yaw = transform.eulerAngles.y;
             pitch = startPitch;
-            yaw = 0f;
-            ApplyRotation();
+            ApplyLookRotation();
         }
 
         void Start()
         {
+            ResolveReferences();
+            yaw = transform.eulerAngles.y;
+            if (cameraMount != null && cameraMount != transform)
+            {
+                float localX = cameraMount.localEulerAngles.x;
+                if (localX > 180f) localX -= 360f;
+                pitch = Mathf.Clamp(localX, pitchMin, pitchMax);
+            }
+
+            // Başlangıçta Serbest Mod (Free Roam): İmleç kilitli, odada yürünebilir
+            isFullscreen = false;
             LockCursor(true);
         }
 
         void OnDisable() => ReleasePressed();
 
-        Vector3 savedDeskPos = new Vector3(0f, 1.45f, -1.22f);
+        public void EnterComputerMode()
+        {
+            if (isFullscreen) return;
+            ResolveReferences();
+            isFullscreen = true;
+            LockCursor(false);
+            ReleasePressed();
+            Sfx.Play(SfxType.Click);
+            ClimateOperatorManager.Instance?.Post("BİLGİSAYAR MODU AKTİF — Fare ile OS panellerini yönetin (ESC veya Sağ Tık ile kalkın)");
+        }
+
+        public void ExitComputerMode()
+        {
+            if (!isFullscreen) return;
+            isFullscreen = false;
+            LockCursor(true);
+            ReleasePressed();
+            Sfx.Play(SfxType.Click);
+            ClimateOperatorManager.Instance?.Post("SERBEST ODA MODU — WASD ile odada yürüyün (E veya Sol Tık ile Bilgisayarı Kullan)");
+        }
 
         public void ToggleFullscreen()
         {
-            isFullscreen = !isFullscreen;
-            if (isFullscreen)
-            {
-                savedDeskPos = transform.position;
-                LockCursor(false);
-                ReleasePressed();
-                ClimateOperatorManager.Instance?.Post("TAM EKRAN MODU: Bütün operasyonu fareyle yönetin [E / ESC: Çıkış]");
-            }
-            else
-            {
-                transform.position = savedDeskPos;
-                LockCursor(true);
-                pitch = 12f;
-                yaw = 0f;
-                ApplyRotation();
-                ClimateOperatorManager.Instance?.Post("NORMAL GÖRÜNÜM: Serbest oda bakışı [E: Tam Ekran]");
-            }
+            if (isFullscreen) ExitComputerMode();
+            else EnterComputerMode();
         }
 
         void Update()
         {
+            ResolveReferences();
+
             var mouse = Mouse.current;
             var keyboard = Keyboard.current;
 
-            // E tuşu ile tam ekran odaklanma (Monitörün önüne geçip tüm hareketleri fareyle çözme)
-            if (keyboard != null && keyboard.eKey.wasPressedThisFrame)
+            if (isFullscreen)
             {
-                ToggleFullscreen();
+                UpdateMonitorFocusMode(mouse, keyboard);
             }
+            else
+            {
+                UpdateFreeRoamMode(mouse, keyboard);
+            }
+        }
 
-            // Escape ile imleç serbest bırakma veya tam ekrandan çıkma
+        // ============================================================ 1. SERBEST MOD (FREE ROAM)
+
+        void UpdateFreeRoamMode(Mouse mouse, Keyboard keyboard)
+        {
+            // ESC ile editörde imleci serbest bırak, ekrana tıklayınca geri kilitle
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
-                if (isFullscreen)
+                LockCursor(!IsCursorLocked);
+            }
+
+            // Kamerayı yumuşakça karakterin göz hizasına (PlayerCameraMount) geri çek
+            if (playerCamera != null && cameraMount != null)
+            {
+                playerCamera.transform.position = Vector3.Lerp(
+                    playerCamera.transform.position,
+                    cameraMount.position,
+                    Time.deltaTime * transitionSpeed);
+
+                playerCamera.transform.rotation = Quaternion.Slerp(
+                    playerCamera.transform.rotation,
+                    cameraMount.rotation,
+                    Time.deltaTime * transitionSpeed);
+
+                playerCamera.fieldOfView = Mathf.Lerp(
+                    playerCamera.fieldOfView,
+                    normalFOV,
+                    Time.deltaTime * transitionSpeed);
+            }
+
+            // Fare Bakışı (Mouse Look)
+            if (mouse != null && (IsCursorLocked || mouse.rightButton.isPressed))
+            {
+                Vector2 delta = mouse.delta.ReadValue();
+                yaw = (yaw + delta.x * sensitivity) % 360f;
+                pitch = Mathf.Clamp(pitch - delta.y * sensitivity, pitchMin, pitchMax);
+                ApplyLookRotation();
+            }
+
+            // WASD Yürüme + Yerçekimi (CharacterController)
+            if (enableMovement)
+            {
+                HandleCharacterMovement(keyboard);
+            }
+
+            // KURAL 1: Sadece bilgisayara yaklaşıp DOĞRUDAN monitöre baktığında (kitaplığa veya duvara bakarken değil!)
+            // ekranın ortasında 'E' ikonu belirtsin.
+            hovered = null;
+            isNearWorkstation = false;
+
+            if (playerCamera != null && workstation != null)
+            {
+                Transform focusRef = workstation.cameraFocusPoint != null
+                    ? workstation.cameraFocusPoint
+                    : (workstation.monitorHead != null ? workstation.monitorHead : workstation.transform);
+
+                Vector3 toMonitor = focusRef.position - playerCamera.transform.position;
+                float dist = toMonitor.magnitude;
+                float dot = Vector3.Dot(playerCamera.transform.forward, toMonitor.normalized);
+
+                // Monitör yönüne bakıyor mu? (dot > 0.60: ~53 derece)
+                bool isFacingMonitor = dot > 0.60f;
+
+                if (dist <= 3.2f && isFacingMonitor)
                 {
-                    ToggleFullscreen();
-                }
-                else
-                {
-                    LockCursor(false);
-                    ReleasePressed();
+                    Ray centerRay = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+                    if (Physics.Raycast(centerRay, out RaycastHit hit, 3.5f, ~0, QueryTriggerInteraction.Collide))
+                    {
+                        var station = hit.collider.GetComponentInParent<MovableComputerStation>();
+                        if (station != null || hit.collider.transform.IsChildOf(workstation.transform) || hit.collider.transform == workstation.transform)
+                        {
+                            isNearWorkstation = true;
+                            hovered = workstation;
+                        }
+                    }
+                    else if (dist <= 2.2f)
+                    {
+                        // Masanın önünde ve monitöre bakıyorsa raycast kaçsa bile etkileşime izin ver
+                        isNearWorkstation = true;
+                        hovered = workstation;
+                    }
                 }
             }
 
-            // İmleç serbestken sol tık yapıldığında ve tam ekranda DEĞİLKEN yeniden kilitle
-            if (!isFullscreen && !IsCursorLocked && mouse != null && mouse.leftButton.wasPressedThisFrame)
+            // E tuşuna basınca (yalnızca monitöre bakarken) bilgisayara otur
+            if (keyboard != null && keyboard.eKey.wasPressedThisFrame && isNearWorkstation)
             {
-                // Eğer doğrudan bir 3D interactable'a tıklanmadıysa kilitle
-                Ray freeRay = cam != null ? cam.ScreenPointToRay(mouse.position.ReadValue()) : default;
-                if (!Physics.Raycast(freeRay, out RaycastHit hit, maxDistance, ~0, QueryTriggerInteraction.Ignore)
-                    || hit.collider.GetComponentInParent<Interactable>() == null)
+                EnterComputerMode();
+                return;
+            }
+
+            // Serbest modda Sol Tık: Monitöre bakıyorsa bilgisayara otur, değilse imleci kilitle
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame)
+            {
+                if (isNearWorkstation)
+                {
+                    EnterComputerMode();
+                }
+                else if (!IsCursorLocked)
                 {
                     LockCursor(true);
                 }
             }
+        }
 
-            // 1. TAM EKRAN VS NORMAL BAKIŞ
-            if (isFullscreen)
+        void HandleCharacterMovement(Keyboard keyboard)
+        {
+            float moveX = 0f;
+            float moveZ = 0f;
+
+            if (keyboard != null)
             {
-                // Tam ekranda fare daima serbest ve görünürdür (Oyuncu her şeyi fareyle tıklar)
-                if (IsCursorLocked) LockCursor(false);
+                if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) moveZ += 1f;
+                if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) moveZ -= 1f;
+                if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) moveX -= 1f;
+                if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) moveX += 1f;
+            }
 
-                Vector3 targetPos;
-                Quaternion targetRot;
-                if (monitorTarget != null)
-                {
-                    targetPos = monitorTarget.position - monitorTarget.forward * focusDistance;
-                    targetRot = monitorTarget.rotation;
-                }
+            float speed = moveSpeed;
+            if (keyboard != null && (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed))
+                speed *= sprintMultiplier;
+
+            Vector3 forward = transform.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude > 0.001f) forward.Normalize();
+
+            Vector3 right = transform.right;
+            right.y = 0f;
+            if (right.sqrMagnitude > 0.001f) right.Normalize();
+
+            Vector3 horizontalMove = (forward * moveZ + right * moveX);
+            if (horizontalMove.sqrMagnitude > 1f) horizontalMove.Normalize();
+            horizontalMove *= speed;
+
+            if (characterController != null && characterController.enabled)
+            {
+                if (characterController.isGrounded && verticalVelocity < 0f)
+                    verticalVelocity = -2f;
                 else
-                {
-                    targetPos = new Vector3(0f, 1.49f, -1.01f);
-                    targetRot = Quaternion.Euler(12f, 0f, 0f);
-                }
+                    verticalVelocity += gravity * Time.deltaTime;
 
-                transform.position = Vector3.Lerp(transform.position, targetPos, Time.deltaTime * transitionSpeed);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * transitionSpeed);
-                if (cam != null) cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, fullscreenFOV, Time.deltaTime * transitionSpeed);
+                Vector3 velocity = horizontalMove + Vector3.up * verticalVelocity;
+                characterController.Move(velocity * Time.deltaTime);
             }
-            else
+            else if (horizontalMove.sqrMagnitude > 0.001f)
             {
-                if (cam != null) cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, normalFOV, Time.deltaTime * transitionSpeed);
+                transform.position += horizontalMove * Time.deltaTime;
+            }
+        }
 
-                // Serbest Fare Bakışı
-                if (mouse != null)
-                {
-                    bool shouldRotate = IsCursorLocked || mouse.rightButton.isPressed;
-                    if (shouldRotate)
-                    {
-                        Vector2 delta = mouse.delta.ReadValue();
-                        yaw = (yaw + delta.x * sensitivity) % 360f;
-                        pitch = Mathf.Clamp(pitch - delta.y * sensitivity, pitchMin, pitchMax);
-                        ApplyRotation();
-                    }
-                }
+        void ApplyLookRotation()
+        {
+            transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            if (cameraMount != null && cameraMount != transform)
+            {
+                cameraMount.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+            }
+        }
 
-                // WASD Yürüme
-                if (enableMovement)
-                {
-                    HandleMovement(keyboard);
-                }
+        // ============================================================ 2. BİLGİSAYAR MODU (MONITOR FOCUS)
+
+        void UpdateMonitorFocusMode(Mouse mouse, Keyboard keyboard)
+        {
+            if (IsCursorLocked) LockCursor(false);
+
+            // ESC veya Sağ Tık ile Bilgisayardan Kalk -> Serbest Moda Dön
+            if ((keyboard != null && keyboard.escapeKey.wasPressedThisFrame) ||
+                (mouse != null && mouse.rightButton.wasPressedThisFrame))
+            {
+                ExitComputerMode();
+                return;
             }
 
-            // 2. RAYCAST İLE ETKİLEŞİM (TAM EKRANDA TAMAMEN FARE OKU İLE)
-            if (cam != null && mouse != null)
+            // Kamerayı yumuşakça (Lerp/Slerp) Computer_Workstation/CameraFocusPoint noktasına hizala
+            if (playerCamera != null)
             {
-                Ray ray = (IsCursorLocked && !isFullscreen)
-                    ? cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f))
-                    : cam.ScreenPointToRay(mouse.position.ReadValue());
+                Transform focusPt = (workstation != null && workstation.cameraFocusPoint != null)
+                    ? workstation.cameraFocusPoint
+                    : monitorTarget;
+
+                if (focusPt != null)
+                {
+                    playerCamera.transform.position = Vector3.Lerp(
+                        playerCamera.transform.position,
+                        focusPt.position,
+                        Time.deltaTime * transitionSpeed);
+
+                    playerCamera.transform.rotation = Quaternion.Slerp(
+                        playerCamera.transform.rotation,
+                        focusPt.rotation,
+                        Time.deltaTime * transitionSpeed);
+                }
+
+                playerCamera.fieldOfView = Mathf.Lerp(
+                    playerCamera.fieldOfView,
+                    fullscreenFOV,
+                    Time.deltaTime * transitionSpeed);
+            }
+
+            // Fare İmleci ile Monitör Üzerindeki OS Panellerine / Butonlarına / Kıtalara Tıklama
+            if (playerCamera != null && mouse != null)
+            {
+                Ray ray = playerCamera.ScreenPointToRay(mouse.position.ReadValue());
 
                 hovered = null;
                 if (Physics.Raycast(ray, out RaycastHit hit, maxDistance, ~0, QueryTriggerInteraction.Ignore))
                 {
-                    hovered = hit.collider.GetComponentInParent<Interactable>();
+                    var inter = hit.collider.GetComponentInParent<Interactable>();
+                    // Bilgisayar modundayken dış istasyon kutusunu değil, doğrudan iç OS butonlarını/haritayı hedefle
+                    if (inter != null && !(inter is MovableComputerStation))
+                    {
+                        hovered = inter;
+                    }
                 }
 
-                // Oyun oynanıyor mu kontrolü
-                bool playing = true;
-                if (ClimateOperatorManager.Instance != null)
-                    playing = ClimateOperatorManager.Instance.State == GameState.Playing;
-                else if (ClimateStateManager.Instance != null)
-                    playing = ClimateStateManager.Instance.State == GameState.Playing;
+                bool playing = ClimateOperatorManager.Instance == null || ClimateOperatorManager.Instance.State == GameState.Playing;
 
                 if (mouse.leftButton.wasPressedThisFrame && playing && hovered != null && hovered.isInteractable)
                 {
@@ -216,61 +404,11 @@ namespace Pixamor.COP31
             }
         }
 
-        void HandleMovement(Keyboard keyboard)
-        {
-            float moveX = 0f;
-            float moveZ = 0f;
-
-            if (keyboard != null)
-            {
-                if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) moveZ += 1f;
-                if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) moveZ -= 1f;
-                if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) moveX -= 1f;
-                if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) moveX += 1f;
-            }
-
-            if (Mathf.Abs(moveX) > 0.01f || Mathf.Abs(moveZ) > 0.01f)
-            {
-                float currentSpeed = moveSpeed;
-                if (keyboard != null && (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed))
-                    currentSpeed *= sprintMultiplier;
-
-                Vector3 forward = transform.forward;
-                forward.y = 0f;
-                forward.Normalize();
-
-                Vector3 right = transform.right;
-                right.y = 0f;
-                right.Normalize();
-
-                Vector3 moveDir = (forward * moveZ + right * moveX).normalized;
-                Vector3 p = transform.position + moveDir * currentSpeed * Time.deltaTime;
-
-                // Masa sınırına takılma yumuşatması (Masa: x: [-1.45, 1.45], z: [-0.95, 0.25])
-                // Oyuncunun masanın içine girmesini önler
-                if (p.x > -1.45f && p.x < 1.45f && p.z > -0.95f && p.z < 0.25f)
-                {
-                    // Masanın dışına it
-                    if (transform.position.z <= -0.95f) p.z = -0.95f;
-                    else if (transform.position.z >= 0.25f) p.z = 0.25f;
-                    else if (transform.position.x <= -1.45f) p.x = -1.45f;
-                    else if (transform.position.x >= 1.45f) p.x = 1.45f;
-                }
-
-                p.x = Mathf.Clamp(p.x, xBounds.x, xBounds.y);
-                p.z = Mathf.Clamp(p.z, zBounds.x, zBounds.y);
-                p.y = eyeHeight;
-                transform.position = p;
-            }
-        }
-
         void ReleasePressed()
         {
             if (pressed != null) pressed.OnRelease();
             pressed = null;
         }
-
-        void ApplyRotation() => transform.localRotation = Quaternion.Euler(pitch, yaw, 0f);
 
         public static void LockCursor(bool locked)
         {

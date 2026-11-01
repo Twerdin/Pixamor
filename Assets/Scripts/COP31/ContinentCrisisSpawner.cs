@@ -2,30 +2,37 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Pixamor.COP31
+namespace Pixamor.ClimateOS
 {
     /// <summary>
-    /// 7 Kıta Kriz Üretim ve Tetikleme Yöneticisi:
-    /// - Yalnızca kara pikselleri üzerinde kriz oluşturur.
-    /// - Okyanus tıklamalarını geçersiz sayar.
-    /// - Kıtaların alarm nabzını (pulse) ve 3D kriz pinlerini yönetir.
-    /// - Süre dolduğunda varsayılan seçeneği otomatik devreye alır.
+    /// 7 Kıta Kriz, Dinamik Karar Süresi (10s / 20s / 30s) ve Günlük Görev Döngüsü Yöneticisi:
+    /// - Her gün başında o güne ait 3 kriz/görev dosyası aktifleşir.
+    /// - O güne ait tüm kriz/görev dosyaları tamamlandığında otomatik olarak Siyah Ekran ("GÜN X") geçişi tetiklenir.
     /// </summary>
     public class ContinentCrisisSpawner : MonoBehaviour
     {
         public static ContinentCrisisSpawner Instance { get; private set; }
 
-        [Header("Zaman Ayarları")]
-        public float initialCrisisDelay = 4.0f;
-        public float crisisInterval = 28.0f;
-        public float crisisDuration = 40.0f;
+        [Serializable]
+        public class DeferredCrisisRecord
+        {
+            public ContinentType continent;
+            public ContinentQuestion question;
+            public int returnDay;
+        }
 
         [Header("Pin Referansları")]
         public WorldMapPin[] continentPins = new WorldMapPin[7];
 
-        float nextSpawnTime;
-        int questionsAskedCount;
+        [Header("Ertelenmiş Kriz Zinciri (3 Gün Sonra 2x Döner)")]
+        public List<DeferredCrisisRecord> deferredCrises = new List<DeferredCrisisRecord>();
+
         readonly HashSet<int> usedQuestionIds = new HashSet<int>();
+
+        void OnEnable()
+        {
+            Instance = this;
+        }
 
         void Awake()
         {
@@ -39,45 +46,8 @@ namespace Pixamor.COP31
 
         void Start()
         {
-            nextSpawnTime = Time.time + initialCrisisDelay;
-        }
-
-        void Update()
-        {
-            var mgr = ClimateOperatorManager.Instance;
-            if (mgr != null && mgr.State != GameState.Playing) return;
-
-            // 1. Yeni Kriz Üretme Döngüsü
-            if (Time.time >= nextSpawnTime)
-            {
-                SpawnNextCrisis();
-                nextSpawnTime = Time.time + crisisInterval;
-            }
-
-            // 2. Aktif Krizlerin Geri Sayımı
-            var controller = WorldMapMonitorController.Instance;
-            if (controller == null) return;
-
-            for (int i = 0; i < 7; i++)
-            {
-                var cont = controller.continents[i];
-                if (cont != null && cont.inCrisis)
-                {
-                    cont.crisisRemainingTime -= Time.deltaTime;
-
-                    // Pini güncelle
-                    if (continentPins != null && i < continentPins.Length && continentPins[i] != null)
-                    {
-                        continentPins[i].UpdateTimer(cont.crisisRemainingTime, crisisDuration);
-                    }
-
-                    // Süre dolduysa otomatik müdahalesizlik / erteleme seçeneği (3. seçenek) devreye girer
-                    if (cont.crisisRemainingTime <= 0f)
-                    {
-                        HandleCrisisTimeout(cont);
-                    }
-                }
-            }
+            deferredCrises.Clear();
+            SpawnNewDailyCrises(3);
         }
 
         public void RegisterPin(ContinentType continent, WorldMapPin pin)
@@ -89,159 +59,206 @@ namespace Pixamor.COP31
             }
         }
 
-        /// <summary>
-        /// Yalnızca kara pikselleri üzerinden kriz üretir.
-        /// </summary>
-        public void SpawnNextCrisis()
+        public ContinentQuestion PickQuestionForContinent(ContinentType targetContinent)
         {
-            var controller = WorldMapMonitorController.Instance;
-            if (controller == null) return;
-
-            // Krizde olmayan kıtaları tespit et
-            var availableContinents = new List<ContinentType>();
-            for (int i = 0; i < 7; i++)
-            {
-                if (!controller.continents[i].inCrisis)
-                {
-                    availableContinents.Add(controller.continents[i].type);
-                }
-            }
-
-            if (availableContinents.Count == 0) return; // Tüm kıtalar zaten krizde
-
-            // Önceliklendirme: İklim sağlığı en düşük olan kıtaya daha yüksek kriz ihtimali ver
-            availableContinents.Sort((a, b) =>
-            {
-                var sa = controller.GetContinent(a);
-                var sb = controller.GetContinent(b);
-                return sa.health.CompareTo(sb.health);
-            });
-
-            // En kritik ilk 3 kıtadan birini seç
-            int pickRange = Mathf.Min(3, availableContinents.Count);
-            ContinentType targetContinent = availableContinents[UnityEngine.Random.Range(0, pickRange)];
-            var contState = controller.GetContinent(targetContinent);
-
-            // Soru havuzundan uygun soruyu çek
             var pool = ContinentQuestionDatabase.GetQuestionsForContinent(targetContinent);
-            if (pool.Count == 0) return;
+            if (pool.Count == 0) return null;
 
-            ContinentQuestion chosenQ = null;
+            var unused = new List<ContinentQuestion>();
             for (int i = 0; i < pool.Count; i++)
             {
                 if (!usedQuestionIds.Contains(pool[i].id))
                 {
-                    chosenQ = pool[i];
-                    break;
+                    unused.Add(pool[i]);
                 }
             }
 
-            // Hepsi kullanıldıysa havuzu tekrar aç
-            if (chosenQ == null)
+            ContinentQuestion chosenQ;
+            if (unused.Count > 0)
+            {
+                chosenQ = unused[UnityEngine.Random.Range(0, unused.Count)];
+            }
+            else
             {
                 usedQuestionIds.Clear();
                 chosenQ = pool[UnityEngine.Random.Range(0, pool.Count)];
             }
 
             usedQuestionIds.Add(chosenQ.id);
-
-            // Kriz başlat
-            controller.TriggerContinentCrisis(targetContinent, chosenQ, crisisDuration);
-
-            // 3D Kriz Pinini aktif et
-            int contIdx = (int)targetContinent;
-            if (continentPins != null && contIdx < continentPins.Length && continentPins[contIdx] != null)
-            {
-                continentPins[contIdx].Activate(chosenQ.title, crisisDuration);
-            }
-
-            // Bildirim gönder
-            ClimateOperatorManager.Instance?.Post($"[KRİZ ALARMI] {contState.name}: '{chosenQ.title}' patlak verdi! Kıtaya tıklayarak müdahale edin.");
-            Sfx.Play(SfxType.Alarm);
+            return chosenQ;
         }
 
-        /// <summary>
-        /// Monitör ekranına tıklandığında çağrılır.
-        /// Kesin Kural: Okyanus tıklamaları yoksayılır, yalnızca kara pikselleri yanıt verir.
-        /// </summary>
-        public void OnScreenClicked(Vector2 mapUV)
+        public int GetActiveCrisisCount()
+        {
+            var controller = WorldMapMonitorController.Instance;
+            if (controller == null || controller.continents == null) return 0;
+            int count = 0;
+            for (int i = 0; i < 7 && i < controller.continents.Length; i++)
+            {
+                if (controller.continents[i] != null && controller.continents[i].inCrisis)
+                    count++;
+            }
+            return count;
+        }
+
+        public void ProcessEndOfDayCrises()
         {
             var controller = WorldMapMonitorController.Instance;
             if (controller == null) return;
 
-            int continentIdx = controller.GetContinentAtUV(mapUV);
-
-            // Okyanusa tıklandıysa kesinlikle hiçbir şey yapma!
-            if (continentIdx < 0 || continentIdx >= 7)
+            for (int i = 0; i < 7; i++)
             {
-                return;
-            }
-
-            var cont = controller.continents[continentIdx];
-
-            // Eğer kıtada kriz varsa Soru-Cevap modalını aç
-            if (cont.inCrisis && cont.activeQuestion != null)
-            {
-                BlindChoiceDialogueUI.Instance?.OpenForContinent(cont);
-            }
-            else
-            {
-                // Kriz yoksa kıtanın güncel durumunu alt bilgi bandına yaz
-                ClimateOperatorManager.Instance?.Post($"{cont.name} — Temsilci: {cont.representativeTitle} | İklim: %{cont.health:0} | Sinir: %{cont.anger:0} (Durum Stabil)");
-                Sfx.Play(SfxType.Click);
+                var cont = controller.continents[i];
+                if (cont != null && cont.inCrisis)
+                {
+                    ClearContinentCrisis(cont);
+                }
             }
         }
 
-        /// <summary>
-        /// Bir 3D kriz pinine doğrudan tıklandığında çağrılır.
-        /// </summary>
-        public void OnPinClicked(int continentIdx)
-        {
-            var controller = WorldMapMonitorController.Instance;
-            if (controller == null || continentIdx < 0 || continentIdx >= 7) return;
-
-            var cont = controller.continents[continentIdx];
-            if (cont.inCrisis && cont.activeQuestion != null)
-            {
-                BlindChoiceDialogueUI.Instance?.OpenForContinent(cont);
-            }
-        }
-
-        void HandleCrisisTimeout(WorldMapMonitorController.ContinentState cont)
-        {
-            if (cont.activeQuestion == null || cont.activeQuestion.choices.Length < 3) return;
-
-            // 3. Seçenek (Müdahalesizlik / Erteleme) varsayılan olarak devreye girer
-            var fallbackChoice = cont.activeQuestion.choices[2];
-
-            ClimateOperatorManager.Instance?.Post($"[ZAMAN DOLDU] {cont.name} krizine müdahale gecikti! Gecikmeli sonuçlar uygulandı.");
-            Sfx.Play(SfxType.Fail);
-
-            ResolveCrisis(cont.type, fallbackChoice);
-        }
-
-        public void ResolveCrisis(ContinentType continent, BlindChoice choice)
+        public void OnDayAdvanced(int newDay)
         {
             var controller = WorldMapMonitorController.Instance;
             if (controller == null) return;
 
-            int idx = (int)continent;
+            for (int i = deferredCrises.Count - 1; i >= 0; i--)
+            {
+                var rec = deferredCrises[i];
+                if (newDay >= rec.returnDay)
+                {
+                    deferredCrises.RemoveAt(i);
+                    var cont = controller.continents[(int)rec.continent];
+                    ActivateCrisisOnContinent(cont, rec.question, isDeferredDoubled: true);
+                    Sfx.Play(SfxType.Alarm);
+                }
+            }
 
-            // 3D Pini kapat
-            if (continentPins != null && idx < continentPins.Length && continentPins[idx] != null)
+            int activeCount = GetActiveCrisisCount();
+            int toSpawn = Mathf.Clamp(3 - activeCount, 1, 3);
+            SpawnNewDailyCrises(toSpawn);
+        }
+
+        public void SpawnNewDailyCrises(int count)
+        {
+            var controller = WorldMapMonitorController.Instance;
+            if (controller == null) return;
+
+            for (int n = 0; n < count; n++)
+            {
+                var available = new List<ContinentType>();
+                for (int i = 0; i < 7; i++)
+                {
+                    if (!controller.continents[i].inCrisis)
+                        available.Add((ContinentType)i);
+                }
+
+                if (available.Count == 0) break;
+
+                ContinentType target = available[UnityEngine.Random.Range(0, available.Count)];
+                ContinentQuestion q = PickQuestionForContinent(target);
+                if (q != null)
+                {
+                    var cont = controller.continents[(int)target];
+                    ActivateCrisisOnContinent(cont, q, isDeferredDoubled: false);
+                }
+            }
+        }
+
+        void ActivateCrisisOnContinent(WorldMapMonitorController.ContinentState cont, ContinentQuestion q, bool isDeferredDoubled)
+        {
+            if (cont == null || q == null) return;
+
+            float duration = q.decisionTimeLimit > 1f ? q.decisionTimeLimit : 20f;
+            cont.inCrisis = true;
+            cont.isDeferredDoubled = isDeferredDoubled;
+            cont.isVerified = false;
+            cont.activeQuestion = q;
+            cont.crisisRemainingTime = duration;
+
+            WorldMapMonitorController.Instance?.SetContinentCrisisState(cont.type, true, q, duration);
+
+            int idx = (int)cont.type;
+            if (continentPins != null && idx >= 0 && idx < continentPins.Length && continentPins[idx] != null)
+            {
+                continentPins[idx].Activate(cont.name, isDeferredDoubled);
+            }
+        }
+
+        public void DeferContinentCrisis(WorldMapMonitorController.ContinentState cont)
+        {
+            if (cont == null || cont.activeQuestion == null) return;
+
+            int currentDay = ClimateOperatorManager.Instance != null ? ClimateOperatorManager.Instance.CurrentDay : 1;
+            deferredCrises.Add(new DeferredCrisisRecord
+            {
+                continent = cont.type,
+                question = cont.activeQuestion,
+                returnDay = currentDay + 3
+            });
+
+            ClearContinentCrisis(cont);
+            ClimateOperatorManager.Instance?.RegisterCrisisDeferred(cont);
+        }
+
+        public void ClearContinentCrisis(WorldMapMonitorController.ContinentState cont)
+        {
+            if (cont == null) return;
+
+            cont.inCrisis = false;
+            cont.isDeferredDoubled = false;
+            cont.isVerified = false;
+            cont.activeQuestion = null;
+            cont.crisisRemainingTime = 0f;
+
+            WorldMapMonitorController.Instance?.SetContinentCrisisState(cont.type, false, null, 0f);
+
+            int idx = (int)cont.type;
+            if (continentPins != null && idx >= 0 && idx < continentPins.Length && continentPins[idx] != null)
             {
                 continentPins[idx].Deactivate();
             }
+        }
 
-            // Kıta durumunu ve harita dokusunu güncelle
-            controller.ResolveContinentCrisis(continent, choice);
+        public void OnScreenClicked(Vector2 uv)
+        {
+            var controller = WorldMapMonitorController.Instance;
+            if (controller == null) return;
 
-            // Küresel oyun dengesini (Para, Halk, İklim) güncelle
-            var mgr = ClimateOperatorManager.Instance;
-            if (mgr != null && choice != null)
+            int clickedContIdx = controller.GetContinentAtUV(uv);
+            if (clickedContIdx < 0 || clickedContIdx >= 7) return;
+
+            OpenContinentDossier(clickedContIdx);
+        }
+
+        public void OnPinClicked(int continentIndex)
+        {
+            if (continentIndex < 0 || continentIndex >= 7) return;
+            OpenContinentDossier(continentIndex);
+        }
+
+        public void OpenContinentDossier(int continentIndex)
+        {
+            if (ClimateOperatorManager.Instance != null && ClimateOperatorManager.Instance.IsDayTransitioning)
+                return;
+
+            var controller = WorldMapMonitorController.Instance;
+            if (controller == null) return;
+
+            var cont = controller.continents[continentIndex];
+            if (cont == null) return;
+
+            if (cont.activeQuestion == null)
             {
-                mgr.ApplyChoiceEffects(choice.moneyDelta, choice.halkDelta, choice.iklimDelta, choice.outcomeSummary);
+                cont.activeQuestion = PickQuestionForContinent(cont.type);
+                cont.crisisRemainingTime = cont.activeQuestion != null ? cont.activeQuestion.decisionTimeLimit : 20f;
             }
+            else if (cont.crisisRemainingTime <= 0.5f)
+            {
+                cont.crisisRemainingTime = cont.activeQuestion.decisionTimeLimit > 1f ? cont.activeQuestion.decisionTimeLimit : 20f;
+            }
+
+            Sfx.Play(SfxType.Open);
+            BlindChoiceDialogueUI.Instance?.ShowForContinent(cont);
         }
     }
 }

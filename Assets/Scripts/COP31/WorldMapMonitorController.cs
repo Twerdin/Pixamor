@@ -4,20 +4,18 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Pixamor.COP31
+namespace Pixamor.ClimateOS
 {
     /// <summary>
     /// 7 Kıtalı Gerçek Zamanlı Dinamik Dünya Haritası Monitör Kontrolcüsü:
     /// - Kaynak görseli (world_map.jpg) okur, piksel temizleme + anti-aliased kenar yumuşatma uygular.
-    /// - Beyaz okyanusları retro CRT laciverti (#0B131E) yapar.
+    /// - Okyanusları koyu Slate (#0B131E) yapar.
     /// - Karaları 7 bağımsız coğrafi kıtaya böler (prosedürel Antarktika dahil).
-    /// - Her kıtanın İklim Sağlığına (0-100) göre karaları dinamik boyar:
-    ///   * %0 (En Kötü): Koyu Kırmızı (#6E0000 / RGB 110, 0, 0)
-    ///   * %50 (Kritik): Kehribar (#B86B00 / RGB 184, 107, 0)
-    ///   * %100 (Ütopya): Koyu Yeşil (#0A5C1A / RGB 10, 92, 26)
+    /// - Her kıtanın İklim Sağlığına (0-100) göre karaları dinamik boyar.
     /// - Kriz anında o kıta parlak alarm kırmızısı ile yanıp söner (pulse efekti).
     /// - Piksel-kusursuz kara maskelemesi ile okyanusa tıklamaları engeller.
     /// </summary>
+    [ExecuteAlways]
     public class WorldMapMonitorController : MonoBehaviour
     {
         public static WorldMapMonitorController Instance { get; private set; }
@@ -31,8 +29,13 @@ namespace Pixamor.COP31
             public ContinentType type;
             public string name;
             public string representativeTitle;
+            public string representativeName => representativeTitle;
             [Range(0f, 100f)] public float health;
             [Range(0f, 100f)] public float anger;
+            [Range(0f, 100f)] public float loyalty = 25f;
+            public bool isPuppet;
+
+            public bool IsPuppet => isPuppet || loyalty >= 75f;
 
             // 6 Çevre Sorun Barı (0..100)
             [Range(0f, 100f)] public float tree;
@@ -43,6 +46,8 @@ namespace Pixamor.COP31
             [Range(0f, 100f)] public float zeroWaste;
 
             public bool inCrisis;
+            public bool isDeferredDoubled;
+            public bool isVerified;
             public ContinentQuestion activeQuestion;
             public float crisisRemainingTime;
             public Vector2 primaryLandUV;
@@ -62,9 +67,9 @@ namespace Pixamor.COP31
         readonly List<int>[] continentPixelIndices = new List<int>[7];
         readonly List<Vector2Int>[] continentLandCoords = new List<Vector2Int>[7];
 
-        // Sabit Renkler
-        static readonly Color32 OceanColor = new Color32(11, 19, 30, 255);       // #0B131E
-        static readonly Color32 AlarmPulseRed = new Color32(255, 24, 24, 255);   // Parlak alarm kırmızısı
+        // Sabit Renkler (V4: Koyu Gece Laciverti #0B1528 Okyanus + Zümrüt #10B981 / Kehribar #F59E0B / Kızıl #EF4444 Kıtalar)
+        static readonly Color32 OceanColor = new Color32(11, 21, 40, 255);       // #0B1528 Koyu Gece Laciverti/Arduvaz Okyanus
+        static readonly Color32 AlarmPulseRed = new Color32(239, 68, 68, 255);   // #EF4444 Parlak Kızıl Kriz Vurgusu
 
         bool isInitialized;
         bool hasAnyActiveCrisis;
@@ -72,7 +77,23 @@ namespace Pixamor.COP31
         void Awake()
         {
             Instance = this;
-            InitializeContinentData();
+            if (continents == null || continents.Length < 7 || continents[0] == null)
+            {
+                InitializeContinentData();
+            }
+            if (dynamicMapTex == null || continentMask == null)
+            {
+                InitializeMap();
+            }
+        }
+
+        void OnEnable()
+        {
+            Instance = this;
+            if (dynamicMapTex == null || continentMask == null)
+            {
+                InitializeMap();
+            }
         }
 
         void OnDestroy()
@@ -80,14 +101,19 @@ namespace Pixamor.COP31
             if (Instance == this) Instance = null;
             if (dynamicMapTex != null)
             {
-                Destroy(dynamicMapTex);
+                Greybox.Kill(dynamicMapTex);
                 dynamicMapTex = null;
             }
         }
 
         void Start()
         {
-            if (!isInitialized)
+            if (Application.isPlaying)
+            {
+                InitializeContinentData();
+                InitializeMap();
+            }
+            else if (!isInitialized)
             {
                 InitializeMap();
             }
@@ -106,7 +132,13 @@ namespace Pixamor.COP31
 
         public void BindRawImage(RawImage rawImage)
         {
+            if (Instance == null) Instance = this;
             monitorRawImage = rawImage;
+            if (continents == null || continents.Length < 7 || continents[0] == null)
+            {
+                InitializeContinentData();
+            }
+
             if (!isInitialized)
             {
                 InitializeMap();
@@ -122,14 +154,15 @@ namespace Pixamor.COP31
             // Kullanıcı şartnamesine göre 7 kıtanın başlangıç durumları:
             continents = new ContinentState[7];
 
-            // 0: Kuzey Amerika (%35 İklim, Yüksek Fabrika & Sıfır Atık Sorunu)
+            // 0: Kuzey Amerika
             continents[0] = new ContinentState
             {
                 type = ContinentType.NorthAmerica,
                 name = "Kuzey Amerika",
-                representativeTitle = "Vali Jack Harper",
-                health = 35f,
+                representativeTitle = "Başkan Jack Harper",
+                health = 62f,
                 anger = 60f,
+                loyalty = 25f,
                 tree = 50f,
                 factory = 85f,
                 pollution = 70f,
@@ -139,14 +172,15 @@ namespace Pixamor.COP31
                 primaryLandUV = new Vector2(0.22f, 0.65f)
             };
 
-            // 1: Güney Amerika (%45 İklim, Yüksek Ormansızlaşma/Ağaç Sorunu)
+            // 1: Güney Amerika
             continents[1] = new ContinentState
             {
                 type = ContinentType.SouthAmerica,
                 name = "Güney Amerika",
-                representativeTitle = "Bakan Camila Silva",
-                health = 45f,
+                representativeTitle = "Başkan Camila Silva",
+                health = 74f,
                 anger = 55f,
+                loyalty = 30f,
                 tree = 20f,
                 factory = 45f,
                 pollution = 50f,
@@ -156,14 +190,15 @@ namespace Pixamor.COP31
                 primaryLandUV = new Vector2(0.32f, 0.32f)
             };
 
-            // 2: Avrupa (%65 İklim, Orta-İyi Yenilenebilir Enerji Geçişi)
+            // 2: Avrupa
             continents[2] = new ContinentState
             {
                 type = ContinentType.Europe,
                 name = "Avrupa",
-                representativeTitle = "Komisyoner Dr. Elena Rostova",
-                health = 65f,
+                representativeTitle = "Başkan Dr. Elena Rostova",
+                health = 85f,
                 anger = 40f,
+                loyalty = 45f,
                 tree = 65f,
                 factory = 50f,
                 pollution = 40f,
@@ -173,14 +208,15 @@ namespace Pixamor.COP31
                 primaryLandUV = new Vector2(0.53f, 0.72f)
             };
 
-            // 3: Afrika (%25 İklim, Ağır Gıda Güvenliği ve Kuraklık Krizi)
+            // 3: Afrika
             continents[3] = new ContinentState
             {
                 type = ContinentType.Africa,
                 name = "Afrika",
-                representativeTitle = "Elçi Kwame Mensah",
-                health = 25f,
-                anger = 80f,
+                representativeTitle = "Başkan Kwame Mensah",
+                health = 58f,
+                anger = 75f,
+                loyalty = 20f,
                 tree = 40f,
                 factory = 30f,
                 pollution = 60f,
@@ -190,14 +226,15 @@ namespace Pixamor.COP31
                 primaryLandUV = new Vector2(0.52f, 0.45f)
             };
 
-            // 4: Asya (%20 İklim, Çok Yüksek Fabrika, Çevre Kirliliği ve Fosil Yakıt)
+            // 4: Asya
             continents[4] = new ContinentState
             {
                 type = ContinentType.Asia,
                 name = "Asya",
-                representativeTitle = "Bakan Li Wei",
-                health = 20f,
-                anger = 85f,
+                representativeTitle = "Başkan Li Wei",
+                health = 54f,
+                anger = 80f,
+                loyalty = 20f,
                 tree = 30f,
                 factory = 95f,
                 pollution = 90f,
@@ -207,14 +244,15 @@ namespace Pixamor.COP31
                 primaryLandUV = new Vector2(0.74f, 0.65f)
             };
 
-            // 5: Okyanusya (%55 İklim, Orta Seviye İklim Durumu)
+            // 5: Okyanusya
             continents[5] = new ContinentState
             {
                 type = ContinentType.Oceania,
                 name = "Okyanusya",
-                representativeTitle = "Temsilci Liam O'Connor",
-                health = 55f,
+                representativeTitle = "Başkan Liam O'Connor",
+                health = 78f,
                 anger = 50f,
+                loyalty = 35f,
                 tree = 55f,
                 factory = 40f,
                 pollution = 45f,
@@ -224,14 +262,15 @@ namespace Pixamor.COP31
                 primaryLandUV = new Vector2(0.85f, 0.30f)
             };
 
-            // 6: Antarktika (%40 İklim, Küresel Isınmaya Bağlı Erime Riski)
+            // 6: Antarktika
             continents[6] = new ContinentState
             {
                 type = ContinentType.Antarctica,
                 name = "Antarktika",
-                representativeTitle = "İstasyon Şefi Dr. Sven Lindholm",
-                health = 40f,
-                anger = 70f,
+                representativeTitle = "Konsey Başkanı Dr. Sven Lindholm",
+                health = 70f,
+                anger = 65f,
+                loyalty = 30f,
                 tree = 10f,
                 factory = 10f,
                 pollution = 50f,
@@ -244,7 +283,16 @@ namespace Pixamor.COP31
 
         public void InitializeMap()
         {
-            if (isInitialized) return;
+            if (isInitialized && dynamicMapTex != null && continentMask != null && displayPixels != null)
+            {
+                if (monitorRawImage != null) monitorRawImage.texture = dynamicMapTex;
+                return;
+            }
+
+            if (continents == null || continents.Length < 7 || continents[0] == null)
+            {
+                InitializeContinentData();
+            }
 
             for (int i = 0; i < 7; i++)
             {
@@ -258,21 +306,24 @@ namespace Pixamor.COP31
             displayPixels = new Color32[totalPixels];
 
             // 1. Kaynak Görseli Yükle
-            Texture2D src = LoadSourceMapTexture();
+            Texture2D src = LoadSourceMapTexture(out bool isTempSrc);
 
             // 2. Harita Piksellerini Çözümle ve 7 Kıtaya Böl
             ProcessSourceImageAndBuildMasks(src);
 
-            if (src != null)
+            if (src != null && isTempSrc)
             {
-                Destroy(src);
+                Greybox.Kill(src);
             }
 
             // 3. Çıkış Dokusu Oluştur (1000 x 667)
-            dynamicMapTex = new Texture2D(MapWidth, MapHeight, TextureFormat.RGBA32, false);
-            dynamicMapTex.name = "Dynamic_World_Map_Monitors";
-            dynamicMapTex.filterMode = FilterMode.Bilinear;
-            dynamicMapTex.wrapMode = TextureWrapMode.Clamp;
+            if (dynamicMapTex == null)
+            {
+                dynamicMapTex = new Texture2D(MapWidth, MapHeight, TextureFormat.RGBA32, false);
+                dynamicMapTex.name = "Dynamic_World_Map_Monitors";
+                dynamicMapTex.filterMode = FilterMode.Bilinear;
+                dynamicMapTex.wrapMode = TextureWrapMode.Clamp;
+            }
 
             // 4. Başlangıç Renklerini Bas
             RedrawEntireMap();
@@ -284,19 +335,17 @@ namespace Pixamor.COP31
             }
 
             isInitialized = true;
-            Debug.Log("[WorldMapMonitorController] 7 Kıta Haritası ve Piksel Maskeleri Başarıyla Yüklendi!");
         }
 
-        Texture2D LoadSourceMapTexture()
+        Texture2D LoadSourceMapTexture(out bool isTemp)
         {
-            // Önce Resources üzerinden dene
+            isTemp = false;
             var res = Resources.Load<Texture2D>("world_map");
             if (res != null && res.isReadable)
             {
                 return res;
             }
 
-            // Doğrudan diskten byte oku
             string path = Path.Combine(Application.dataPath, "Resources/world_map.jpg");
             if (File.Exists(path))
             {
@@ -304,12 +353,14 @@ namespace Pixamor.COP31
                 var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
                 if (tex.LoadImage(bytes))
                 {
+                    isTemp = true;
                     return tex;
                 }
             }
 
-            Debug.LogWarning("[WorldMapMonitorController] world_map.jpg doğrudan bulunamadı, fallback oluşturuluyor.");
-            return WorldMapTextureGenerator.GetOrCreateMapTexture();
+            isTemp = true;
+            var fallback = new Texture2D(MapWidth, MapHeight, TextureFormat.RGBA32, false);
+            return fallback;
         }
 
         void ProcessSourceImageAndBuildMasks(Texture2D src)
@@ -410,11 +461,16 @@ namespace Pixamor.COP31
         {
             if (dynamicMapTex == null || continentMask == null) return;
 
+            if (continents == null || continents.Length < 7 || continents[0] == null)
+            {
+                InitializeContinentData();
+            }
+
             // Her kıtanın şu anki rengini hesapla
             Color32[] continentColors = new Color32[7];
             for (int i = 0; i < 7; i++)
             {
-                continentColors[i] = GetContinentCurrentColor(continents[i]);
+                continentColors[i] = GetContinentCurrentColor(continents != null && i < continents.Length ? continents[i] : null);
             }
 
             int len = displayPixels.Length;
@@ -450,25 +506,27 @@ namespace Pixamor.COP31
 
         void UpdatePulseColors()
         {
-            if (dynamicMapTex == null) return;
+            if (dynamicMapTex == null || continents == null || continentPixelIndices == null) return;
 
             // Sadece krizde olan kıtaları güncelle
-            float pulse = Mathf.PingPong(Time.time * 3.2f, 1f);
+            float pulse = Application.isPlaying ? Mathf.PingPong(Time.time * 3.2f, 1f) : 0f;
 
             bool anyActive = false;
             for (int c = 0; c < 7; c++)
             {
-                if (!continents[c].inCrisis) continue;
+                if (c >= continents.Length || continents[c] == null || !continents[c].inCrisis) continue;
                 anyActive = true;
 
                 Color32 baseCol = GetHealthColor(continents[c].health);
                 Color32 pulseCol = BlendColor(baseCol, AlarmPulseRed, pulse);
 
                 var list = continentPixelIndices[c];
+                if (list == null) continue;
                 int count = list.Count;
                 for (int i = 0; i < count; i++)
                 {
                     int idx = list[i];
+                    if (idx < 0 || idx >= displayPixels.Length) continue;
                     float a = edgeAlpha[idx];
                     if (a >= 0.95f)
                         displayPixels[idx] = pulseCol;
@@ -484,39 +542,48 @@ namespace Pixamor.COP31
 
         Color32 GetContinentCurrentColor(ContinentState cont)
         {
+            if (cont == null) return new Color32(16, 185, 129, 255);
             Color32 baseCol = GetHealthColor(cont.health);
             if (cont.inCrisis)
             {
-                float pulse = Mathf.PingPong(Time.time * 3.2f, 1f);
+                float pulse = Application.isPlaying ? Mathf.PingPong(Time.time * 3.2f, 1f) : 0.7f;
                 return BlendColor(baseCol, AlarmPulseRed, pulse);
             }
             return baseCol;
         }
 
         /// <summary>
-        /// İklim Sağlığına (0 - 100) göre dinamik renk fonksiyonu:
-        /// %0: Koyu Kırmızı (#6E0000 / RGB 110, 0, 0)
-        /// %50: Kehribar / Koyu Turuncu-Sarı (#B86B00 / RGB 184, 107, 0)
-        /// %100: Koyu Yeşil (#0A5C1A / RGB 10, 92, 26)
+        /// V4 Semantik Harita Renkleri:
+        /// - Dengeli Kıtalar (%65..100): Zümrüt Yeşili (#10B981)
+        /// - Orta Riskli Kıtalar (%35..65): Kehribar/Altın (#F59E0B)
+        /// - Kritik Kıtalar (%0..35): Parlak Kızıl/Mercan (#EF4444)
         /// </summary>
         public static Color32 GetHealthColor(float health)
         {
             health = Mathf.Clamp(health, 0f, 100f);
 
-            if (health <= 50f)
+            if (health < 35f)
             {
-                float t = health / 50f;
-                byte r = (byte)Mathf.RoundToInt(Mathf.Lerp(110f, 184f, t));
-                byte g = (byte)Mathf.RoundToInt(Mathf.Lerp(0f, 107f, t));
-                byte b = (byte)Mathf.RoundToInt(Mathf.Lerp(0f, 0f, t));
+                float t = health / 35f;
+                byte r = (byte)Mathf.RoundToInt(Mathf.Lerp(239f, 245f, t));
+                byte g = (byte)Mathf.RoundToInt(Mathf.Lerp(68f, 158f, t));
+                byte b = (byte)Mathf.RoundToInt(Mathf.Lerp(68f, 11f, t));
+                return new Color32(r, g, b, 255);
+            }
+            else if (health < 65f)
+            {
+                float t = (health - 35f) / 30f;
+                byte r = (byte)Mathf.RoundToInt(Mathf.Lerp(245f, 16f, t));
+                byte g = (byte)Mathf.RoundToInt(Mathf.Lerp(158f, 185f, t));
+                byte b = (byte)Mathf.RoundToInt(Mathf.Lerp(11f, 129f, t));
                 return new Color32(r, g, b, 255);
             }
             else
             {
-                float t = (health - 50f) / 50f;
-                byte r = (byte)Mathf.RoundToInt(Mathf.Lerp(184f, 10f, t));
-                byte g = (byte)Mathf.RoundToInt(Mathf.Lerp(107f, 92f, t));
-                byte b = (byte)Mathf.RoundToInt(Mathf.Lerp(0f, 26f, t));
+                float t = (health - 65f) / 35f;
+                byte r = (byte)Mathf.RoundToInt(Mathf.Lerp(16f, 52f, t));
+                byte g = (byte)Mathf.RoundToInt(Mathf.Lerp(185f, 211f, t));
+                byte b = (byte)Mathf.RoundToInt(Mathf.Lerp(129f, 153f, t));
                 return new Color32(r, g, b, 255);
             }
         }
@@ -630,6 +697,37 @@ namespace Pixamor.COP31
             for (int i = 0; i < 7; i++)
             {
                 if (continents[i].inCrisis) hasAnyActiveCrisis = true;
+            }
+
+            RedrawEntireMap();
+        }
+
+        public void SetContinentCrisisState(ContinentType type, bool inCrisis, ContinentQuestion question, float duration)
+        {
+            int idx = (int)type;
+            if (idx < 0 || idx >= continents.Length || continents[idx] == null) return;
+
+            continents[idx].inCrisis = inCrisis;
+            continents[idx].activeQuestion = question;
+            continents[idx].crisisRemainingTime = duration;
+
+            hasAnyActiveCrisis = false;
+            for (int i = 0; i < 7; i++)
+            {
+                if (continents[i] != null && continents[i].inCrisis)
+                    hasAnyActiveCrisis = true;
+            }
+
+            RedrawEntireMap();
+        }
+
+        public void RefreshContinentVisuals(ContinentType type)
+        {
+            hasAnyActiveCrisis = false;
+            for (int i = 0; i < 7; i++)
+            {
+                if (continents[i] != null && continents[i].inCrisis)
+                    hasAnyActiveCrisis = true;
             }
 
             RedrawEntireMap();

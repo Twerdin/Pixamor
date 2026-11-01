@@ -1,35 +1,50 @@
-using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Pixamor.COP31
+namespace Pixamor.ClimateOS
 {
     /// <summary>
-    /// Dünya haritası üzerindeki tıklanabilir kriz pini.
-    /// Kriz patlak verdiğinde kırmızı yanıp söner, uyarı ışığı saçar ve geri sayımı gösterir.
+    /// Dünya haritası üzerindeki tıklanabilir kıta kriz pini.
+    /// KURAL 2: 3D Işık (PointLight/SpotLight) KESİNLİKLE KULLANILMAZ; durumlar yalnızca
+    /// UI elemanlarının ve materyalin kendi renk değerleriyle (Image.color / Material.color) gösterilir.
     /// </summary>
     public class WorldMapPin : Interactable
     {
-        public CrisisEvent EventData { get; private set; }
-        public float TimeRemaining { get; private set; }
-        public float MaxDuration { get; private set; } = 40f;
         public bool IsActive { get; private set; }
+        public bool IsDeferredDoubled { get; private set; }
         public int continentIndex = -1;
 
         public Renderer pinRenderer;
-        public Light pinLight;
+        public Image pinIconImage;
         public Text titleText;
-        public Text timerText;
-        public UIBar timeBar;
         public GameObject uiRoot;
 
         Material pinMat;
-        static readonly Color NormalColor = new Color(0.95f, 0.2f, 0.15f);
-        static readonly Color PulseColor = new Color(1f, 0.8f, 0.25f);
+        static readonly Color NormalColor = new Color(0.94f, 0.27f, 0.27f, 1f);    // #EF4444 Parlak Kızıl Kriz
+        static readonly Color PulseColor = new Color(0.98f, 0.98f, 0.99f, 1f);     // #F8FAFC Beyaz Vurgu
+        static readonly Color DoubledColor = new Color(0.96f, 0.62f, 0.04f, 1f);   // #F59E0B Kehribar (2x Kriz)
 
         void Awake()
         {
+            RemoveAnyLegacy3DLights();
             EnsureMaterial();
+        }
+
+        void RemoveAnyLegacy3DLights()
+        {
+            var lights = GetComponentsInChildren<Light>(true);
+            for (int i = 0; i < lights.Length; i++)
+            {
+                if (lights[i] != null) Greybox.Kill(lights[i]);
+            }
+            if (transform.parent != null)
+            {
+                var parentLights = transform.parent.GetComponentsInChildren<Light>(true);
+                for (int i = 0; i < parentLights.Length; i++)
+                {
+                    if (parentLights[i] != null) Greybox.Kill(parentLights[i].gameObject);
+                }
+            }
         }
 
         void EnsureMaterial()
@@ -40,94 +55,56 @@ namespace Pixamor.COP31
             }
         }
 
-        public void Setup(CrisisEvent data)
-        {
-            EventData = data;
-            hoverLabel = $"KRİZ: {data.title} ({data.locationName})";
-            IsActive = false;
-            if (pinLight != null) pinLight.enabled = false;
-            if (uiRoot != null) uiRoot.SetActive(false);
-            gameObject.SetActive(false);
-        }
-
         public void SetupContinent(int contIdx, string contName)
         {
             continentIndex = contIdx;
-            hoverLabel = $"KRİZ BÖLGESİ: {contName}";
+            hoverLabel = "";
             IsActive = false;
-            if (pinLight != null) pinLight.enabled = false;
+            IsDeferredDoubled = false;
+            RemoveAnyLegacy3DLights();
             if (uiRoot != null) uiRoot.SetActive(false);
             gameObject.SetActive(false);
         }
 
-        public void Activate(float duration)
+        public void Activate(string contName, bool isDeferredDoubled = false)
         {
-            TimeRemaining = duration;
-            MaxDuration = duration;
             IsActive = true;
+            IsDeferredDoubled = isDeferredDoubled;
             gameObject.SetActive(true);
-            if (pinLight != null) pinLight.enabled = true;
             if (uiRoot != null) uiRoot.SetActive(true);
             EnsureMaterial();
 
-            if (titleText != null && EventData != null) titleText.text = EventData.title;
-            UpdateVisuals();
-        }
-
-        public void Activate(string title, float duration)
-        {
-            TimeRemaining = duration;
-            MaxDuration = duration;
-            IsActive = true;
-            gameObject.SetActive(true);
-            if (pinLight != null) pinLight.enabled = true;
-            if (uiRoot != null) uiRoot.SetActive(true);
-            EnsureMaterial();
-
-            if (titleText != null) titleText.text = title;
-            UpdateVisuals();
-        }
-
-        public void UpdateTimer(float remaining, float maxDur)
-        {
-            if (!IsActive) return;
-            TimeRemaining = Mathf.Max(0f, remaining);
-            MaxDuration = maxDur;
+            if (titleText != null)
+            {
+                titleText.text = isDeferredDoubled
+                    ? $"<color=#F59E0B><b>{contName} (2X)</b></color>"
+                    : $"<b>{contName}</b>";
+            }
             UpdateVisuals();
         }
 
         public void Deactivate()
         {
             IsActive = false;
-            if (pinLight != null) pinLight.enabled = false;
+            IsDeferredDoubled = false;
             if (uiRoot != null) uiRoot.SetActive(false);
             gameObject.SetActive(false);
         }
 
-        public void Tick(float dt)
+        void Update()
         {
             if (!IsActive) return;
-            TimeRemaining = Mathf.Max(0f, TimeRemaining - dt);
             UpdateVisuals();
         }
 
         void UpdateVisuals()
         {
             EnsureMaterial();
-            float pulse = (Mathf.Sin(Time.time * 9f) + 1f) * 0.5f;
-            Color c = Color.Lerp(NormalColor, PulseColor, pulse);
+            float pulse = (Mathf.Sin(Time.time * 5f) + 1f) * 0.5f;
+            Color targetA = IsDeferredDoubled ? DoubledColor : NormalColor;
+            Color c = Color.Lerp(targetA, PulseColor, pulse);
             if (pinMat != null) pinMat.color = c;
-            if (pinLight != null) pinLight.color = c;
-
-            if (timerText != null)
-                timerText.text = $"<color=#FF3333><b>{TimeRemaining:0.0}s</b></color>";
-
-            if (timeBar != null && MaxDuration > 0f)
-            {
-                float t01 = Mathf.Clamp01(TimeRemaining / MaxDuration);
-                Color barCol = t01 > 0.4f ? new Color(0.9f, 0.65f, 0.2f) : new Color(1f, 0.2f, 0.2f);
-                timeBar.Set(t01, barCol);
-            }
+            if (pinIconImage != null) pinIconImage.color = c;
         }
 
         public override void OnPressStart()
@@ -137,13 +114,6 @@ namespace Pixamor.COP31
             if (continentIndex >= 0)
             {
                 ContinentCrisisSpawner.Instance?.OnPinClicked(continentIndex);
-                Sfx.Play(SfxType.Click);
-                return;
-            }
-
-            if (EventData != null)
-            {
-                ClimateOperatorManager.Instance?.OpenEventCard(EventData);
                 Sfx.Play(SfxType.Click);
             }
         }
