@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Pixamor.COP31
+namespace Pixamor.ClimateOS
 {
     public enum SfxType
     {

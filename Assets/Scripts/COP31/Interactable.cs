@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Pixamor.COP31
+namespace Pixamor.ClimateOS
 {
     /// <summary>
     /// Raycast ile tıklanabilen tüm 3D objelerin temel sınıfı.
