@@ -9,7 +9,11 @@ namespace Pixamor
     {
         [SerializeField, Min(0f)] private float firstCrisisTime = 5f;
         // Pozitif değer yalnızca sabit zaman çizelgeli regresyon testlerinde kullanılır.
-        private float spawnInterval;
+        private float spawnInterval = 0f;
+        private bool repeatCrises = true;
+        private float cycleStart;
+        private int nextId;
+        private bool previousBurst;
         private float[] spawnOffsets;
         public void ConfigureTempo() { firstCrisisTime=5f; }
 
@@ -52,6 +56,21 @@ namespace Pixamor
 
         private void ResetCrises()
         {
+            cycleStart = 0f;
+            nextId = 0;
+            previousBurst = false;
+            PrepareCycle();
+            active.Clear();
+            OpenCard = null;
+            nextIndex = 0;
+            HandledCount = 0;
+            MissedCount = 0;
+            LastResult = "İlk kriz vardiyanın 5. saniyesinde gelecek.";
+        }
+
+        // Yeni tur, devam eden afetleri veya kaynakları sıfırlamaz.
+        private void PrepareCycle()
+        {
             catalog = CrisisCatalog.Create();
             foreach (var data in catalog) data.ResponseDuration = session.ResponseDuration;
             // Her yeni vardiyada olayları kayıpsız karıştır; aynı afet iki kez eklenmez.
@@ -67,22 +86,16 @@ namespace Pixamor
                 var swap = catalog[0]; catalog[0] = catalog[other]; catalog[other] = swap;
             }
             spawnOffsets=new float[catalog.Length];
-            bool previousBurst=false;
-            for(int i=1;i<spawnOffsets.Length;i++)
-            {
-                // Normalde 8–12 sn; bazen bir ek afet 1–3 sn sonra gelir.
-                // İki kısa aralık arka arkaya üretilmez.
-                bool burst=spawnInterval<=0 && i>1 && !previousBurst && random.NextDouble()<.25;
-                float interval=spawnInterval>0?spawnInterval:burst?1f+(float)random.NextDouble()*2f:8f+(float)random.NextDouble()*4f;
-                spawnOffsets[i]=spawnOffsets[i-1]+interval;
-                previousBurst=burst;
-            }
-            active.Clear();
-            OpenCard = null;
-            nextIndex = 0;
-            HandledCount = 0;
-            MissedCount = 0;
-            LastResult = "İlk kriz vardiyanın 5. saniyesinde gelecek.";
+        }
+
+        private float NextInterval()
+        {
+            // İki kısa aralık art arda üretilmez; tur değişiminde de ritim korunur.
+            bool burst = spawnInterval <= 0 && !previousBurst && random.NextDouble() < .25;
+            previousBurst = burst;
+            return spawnInterval > 0 ? spawnInterval : burst
+                ? 1f + (float)random.NextDouble() * 2f
+                : 8f + (float)random.NextDouble() * 4f;
         }
 
         private void Advance(float step)
@@ -92,7 +105,7 @@ namespace Pixamor
             while (session.State == SessionState.Running)
             {
                 float spawnAt = nextIndex < catalog.Length
-                    ? Mathf.Max(0f, firstCrisisTime) + spawnOffsets[nextIndex]
+                    ? Mathf.Max(0f, firstCrisisTime) + cycleStart + spawnOffsets[nextIndex]
                     : float.PositiveInfinity;
                 ActiveCrisis expired = null;
                 foreach (var crisis in active)
@@ -108,11 +121,19 @@ namespace Pixamor
                     Resolve(expired, expired.Data.TimeoutResult, true);
                 else
                 {
-                    var crisis = new ActiveCrisis(nextIndex, catalog[nextIndex], spawnAt);
-                    if (nextIndex == 0) lastOpeningCrisis = crisis.Data.Title;
+                    var crisis = new ActiveCrisis(nextId++, catalog[nextIndex], spawnAt);
+                    lastOpeningCrisis = crisis.Data.Title;
                     active.Add(crisis);
                     nextIndex++;
+                    if (nextIndex < catalog.Length)
+                        spawnOffsets[nextIndex] = spawnOffsets[nextIndex - 1] + NextInterval();
                     CrisisSpawned?.Invoke(crisis);
+                    if (nextIndex == catalog.Length && repeatCrises)
+                    {
+                        cycleStart += spawnOffsets[catalog.Length - 1] + NextInterval();
+                        PrepareCycle();
+                        nextIndex = 0;
+                    }
                 }
             }
         }

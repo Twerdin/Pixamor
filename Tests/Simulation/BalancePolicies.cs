@@ -22,6 +22,7 @@ partial class Check
         session.RestartSession();
         var manager = new CrisisManager();
         manager.GetType().GetField("spawnInterval",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(manager,20f);
+        manager.GetType().GetField("repeatCrises",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(manager,false);
         manager.GetType().GetField("shuffleOnRestart",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(manager,false);
         manager.GetType().GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(manager, null);
         manager.GetType().GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(manager, null);

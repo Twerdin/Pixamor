@@ -25,6 +25,7 @@ partial class Check {
   g=new GameSession();UnityEngine.MonoBehaviour.Session=g;g.RestartSession();m=new CrisisManager();
   // Eski sınır/bütçe senaryoları kendi 20 saniyelik zaman çizelgesini korur.
   m.GetType().GetField("spawnInterval",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(m,20f);
+        m.GetType().GetField("repeatCrises",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(m,false);
   m.GetType().GetField("shuffleOnRestart",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(m,false);
   m.GetType().GetMethod("Awake",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(m,null);
   m.GetType().GetMethod("OnEnable",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(m,null);
@@ -55,9 +56,9 @@ partial class Check {
    var g=new GameSession();UnityEngine.MonoBehaviour.Session=g;g.RestartSession();var m=new CrisisManager();var flags=BindingFlags.Instance|BindingFlags.NonPublic;
    m.GetType().GetMethod("Awake",flags).Invoke(m,null);m.GetType().GetMethod("OnEnable",flags).Invoke(m,null);
    var data=(CrisisData[])m.GetType().GetField("catalog",flags).GetValue(m);foreach(var d in data)d.TimeoutResult=new InterventionData("Test",0,0,0,"Test",false);
-   float last=-1;bool previousBurst=false;int count=0;
-   m.CrisisSpawned+=crisis=>{float at=crisis.Deadline-crisis.Data.ResponseDuration;if(last>=0){float gap=at-last;bool burst=gap<4; if(burst){if(gap<.999f||gap>3.001f||previousBurst)throw new Exception("Geçersiz ani kriz aralığı");sawBurst=true;}else{if(gap<7.999f||gap>12.001f)throw new Exception("Geçersiz normal aralık");sawNormal=true;}if(previousGap>=0 && Math.Abs(gap-previousGap)>.01)sawVariation=true;previousGap=gap;previousBurst=burst;}last=at;count++;};
-   Tick(g,5);m.Open(m.Active[0]);for(int i=0;i<250;i++)Tick(g,1);if(count!=16 || g.IsPaused)throw new Exception("Afet sayısı veya kart zamanı hatalı");
+   float last=-1;bool previousBurst=false;int count=0;var ids=new System.Collections.Generic.HashSet<int>();
+   m.CrisisSpawned+=crisis=>{crisis.Data.TimeoutResult=new InterventionData("Test",0,0,0,"Test",false);if(!ids.Add(crisis.Id))throw new Exception("Tekrarlanan kriz kimliği");float at=crisis.Deadline-crisis.Data.ResponseDuration;if(last>=0){float gap=at-last;bool burst=gap<4; if(burst){if(gap<.999f||gap>3.001f||previousBurst)throw new Exception("Geçersiz ani kriz aralığı");sawBurst=true;}else{if(gap<7.999f||gap>12.001f)throw new Exception("Geçersiz normal aralık");sawNormal=true;}if(previousGap>=0 && Math.Abs(gap-previousGap)>.01)sawVariation=true;previousGap=gap;previousBurst=burst;}last=at;count++;};
+   Tick(g,5);m.Open(m.Active[0]);while(g.State==SessionState.Running)Tick(g,1);int endedCount=count;Tick(g,60);if(count<=16 || count!=endedCount || last<g.ElapsedTime-12.01f || g.IsPaused)throw new Exception("Afet sayısı veya kart zamanı hatalı");
   }
   Assert(sawBurst && sawNormal && sawVariation,"30 vardiyada 8–12 sn normal aralık, 1–3 sn ani afet, değişken ritim ve açık kartta akış");
  }
