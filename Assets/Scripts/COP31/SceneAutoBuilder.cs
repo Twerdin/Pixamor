@@ -49,6 +49,7 @@ namespace Pixamor.ClimateOS
 
             var activeScene = SceneManager.GetActiveScene();
             if (!activeScene.IsValid() || !activeScene.isLoaded) return;
+            if (UsesOperatorIntegration(activeScene)) return;
 
             var builder = FindAnyObjectByType<SceneAutoBuilder>();
             var workstation = GameObject.Find("Computer_Workstation");
@@ -105,6 +106,7 @@ namespace Pixamor.ClimateOS
 
         void Awake()
         {
+            if (UsesOperatorIntegration(gameObject.scene)) return;
             if (!forceRebuildOnAwake &&
                 builtSceneVersion >= TargetSceneVersion &&
                 GameObject.Find("Computer_Workstation") != null &&
@@ -120,8 +122,17 @@ namespace Pixamor.ClimateOS
         }
 
         [ContextMenu("Sahneyi Sıfırdan İnşa Et (Kalıcı Hierarchy)")]
+        static bool UsesOperatorIntegration(Scene scene)
+        {
+            // Bu sahnede oda modellerini eski otomatik kurulumla yeniden oluşturma.
+            foreach(var root in scene.GetRootGameObjects())
+                if(root.GetComponent<Pixamor.OperatorSceneIntegration>()!=null)return true;
+            return false;
+        }
+
         public void BuildScene()
         {
+            if (UsesOperatorIntegration(gameObject.scene)) return;
 #if UNITY_EDITOR
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 #endif
@@ -1118,3 +1129,4 @@ namespace Pixamor.ClimateOS
         }
     }
 }
+
