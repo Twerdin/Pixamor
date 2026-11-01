@@ -37,7 +37,11 @@ namespace Pixamor.Editor
             var source=SceneManager.GetSceneByPath(TrialRoomInteractionSetup.ScenePath);bool openedSource=!source.IsValid()||!source.isLoaded;
             try
             {
-                if(target.GetRootGameObjects().Any(r=>r.GetComponent<OperatorSceneIntegration>()!=null)){Debug.Log("Altı monitör sistemi bu sahneye zaten bağlı.");return;}
+                if(target.GetRootGameObjects().Any(r=>r.GetComponent<OperatorSceneIntegration>()!=null)){
+                    var linked=target.GetRootGameObjects().Select(r=>r.GetComponent<OperatorSceneIntegration>()).First(m=>m!=null);
+                    linked.player.ConfigureMonitorView(1.05f,1.8f);linked.player.ConfigureMonitorArea(new Vector2(1.8f,1.05f));
+                    EditorUtility.SetDirty(linked.player);EditorSceneManager.MarkSceneDirty(target);EditorSceneManager.SaveScene(target);
+                    Debug.Log("Altı monitör sistemi güncellendi.");return;}
                 string before=ModelFingerprint(target);
                 File.WriteAllText("Library/IhsanModelsBefore.txt",before);
                 var roots=target.GetRootGameObjects();
@@ -62,7 +66,7 @@ namespace Pixamor.Editor
                 var body=actor.AddComponent<CharacterController>();body.radius=.18f;
                 var eye=new GameObject("OperatorCamera");eye.tag="MainCamera";eye.transform.SetParent(actor.transform,false);
                 var camera=eye.AddComponent<Camera>();camera.nearClipPlane=.03f;camera.fieldOfView=70;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.02f,.03f,.04f);eye.AddComponent<AudioListener>();
-                var player=actor.AddComponent<FirstPersonOperator>();player.Configure(camera,mount,crises);player.ConfigureMonitorView(1.5f,1.8f);player.ConfigureRoomScale(1.65f,1.48f,1.7f);
+                var player=actor.AddComponent<FirstPersonOperator>();player.Configure(camera,mount,crises);player.ConfigureMonitorView(1.05f,1.8f);player.ConfigureRoomScale(1.65f,1.48f,1.7f);
                 var previews=rig.GetComponentsInChildren<MeshRenderer>().Where(r=>r.name=="Display").Cast<Renderer>().ToArray();
                 if(previews.Length!=6)throw new InvalidOperationException("Kaynak istasyonda altı ekran bulunamadı.");
                 monitor.Configure(camera,mount,player);monitor.ConfigureSurface(new Vector2(1.8f,1.05f),previews);
@@ -86,5 +90,4 @@ namespace Pixamor.Editor
         }
     }
 }
-
 

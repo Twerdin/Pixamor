@@ -53,6 +53,7 @@ namespace Pixamor
                 enabled = false;
                 return;
             }
+            player.ConfigureMonitorArea(physicalScreenSize);
             session = GetComponent<GameSession>();
             crises = GetComponent<CrisisManager>();
             if (GetComponent<MonitorFeedback>() == null) gameObject.AddComponent<MonitorFeedback>();
@@ -229,3 +230,4 @@ namespace Pixamor
         }
     }
 }
+

@@ -12,8 +12,11 @@ namespace Pixamor
         [SerializeField] private CrisisManager crises;
         [SerializeField] private float walkSpeed = 3f;
         [SerializeField] private float monitorViewDistance = 4.7f;
-        [SerializeField] private float monitorHalfWidth = 3f;
+
         [SerializeField] private float mouseSensitivity = .10f;
+        [SerializeField] private Vector2 monitorPhysicalSize = new Vector2(5.5f,3.575f);
+        [SerializeField] private float interactionDistance = 2.1f;
+        public float MonitorViewDistance => monitorViewDistance;
         public bool IsUsingMonitor { get; private set; }
         public bool IsChangingView { get; private set; }
         [SerializeField, Min(.05f)] private float viewTransitionDuration = .45f;
@@ -43,7 +46,25 @@ namespace Pixamor
         public void ConfigureMonitorView(float distance, float width)
         {
             monitorViewDistance = Mathf.Max(.3f, distance);
-            monitorHalfWidth = width * .55f;
+            monitorPhysicalSize.x = width;
+        }
+
+        public void ConfigureMonitorArea(Vector2 size) { monitorPhysicalSize=size; }
+
+        // Geniş bir bakış açısı yerine gerçek ekran dikdörtgenini hedefleriz.
+        public bool CanInteractWithMonitor
+        {
+            get
+            {
+                if(UIBlocked || IsUsingMonitor || IsChangingView || viewCamera==null || monitor==null)return false;
+                var ray=new Ray(viewCamera.transform.position,viewCamera.transform.forward);
+                if(Vector3.Dot(ray.origin-monitor.position,monitor.forward)>=0)return false;
+                if(!new Plane(monitor.forward,monitor.position).Raycast(ray,out float distance) || distance>interactionDistance)return false;
+                var local=Quaternion.Inverse(monitor.rotation)*(ray.GetPoint(distance)-monitor.position);
+                if(Mathf.Abs(local.x)>monitorPhysicalSize.x*.5f || Mathf.Abs(local.y)>monitorPhysicalSize.y*.5f)return false;
+                if(Physics.Raycast(ray,out var hit,distance) && hit.distance<distance-.1f && hit.collider.GetComponentInParent<FirstPersonOperator>()!=this)return false;
+                return true;
+            }
         }
 
         public void ConfigureRoomScale(float height, float eyeHeight, float speed)
@@ -64,9 +85,8 @@ namespace Pixamor
             eyePosition = viewCamera.transform.localPosition;
             walkFov = viewCamera.fieldOfView;
             CaptureMouse(!UIBlocked);
+            if(GetComponent<OperatorInteractionHud>()==null)gameObject.AddComponent<OperatorInteractionHud>();
         }
-
-        private bool InReach => Vector3.Distance(viewCamera.transform.position,monitor.position) <= 5f;
 
         private void Update()
         {
@@ -84,8 +104,7 @@ namespace Pixamor
             if (keyboard.eKey.wasPressedThisFrame)
             {
                 if (IsUsingMonitor) ExitMonitor();
-                else if (InReach && Vector3.Dot(viewCamera.transform.forward,
-                    (monitor.position - viewCamera.transform.position).normalized) > .5f)
+                else if (CanInteractWithMonitor)
                     EnterMonitor();
             }
             if (IsUsingMonitor) return;
@@ -121,8 +140,9 @@ namespace Pixamor
             if (!Application.isPlaying || UIBlocked || IsUsingMonitor || IsChangingView || viewCamera == null || monitor == null) return;
             IsUsingMonitor = true;
             // Oyuncuyu taşımadan kamerayı okuma konumuna getiririz.
-            BeginViewTransition(monitor.position - monitor.forward * monitorViewDistance, monitor.rotation,
-                Mathf.Max(48f, 2f * Mathf.Atan(monitorHalfWidth / (monitorViewDistance * viewCamera.aspect)) * Mathf.Rad2Deg));
+            float halfHeight=Mathf.Max(monitorPhysicalSize.y*.5f,monitorPhysicalSize.x*.5f/viewCamera.aspect);
+            float focusedFov=2f*Mathf.Atan(halfHeight*1.04f/monitorViewDistance)*Mathf.Rad2Deg;
+            BeginViewTransition(monitor.position-monitor.forward*monitorViewDistance,monitor.rotation,focusedFov);
             CaptureMouse(false);
         }
 
@@ -205,15 +225,7 @@ namespace Pixamor
 
         private void OnDisable() { if(viewTransition!=null)StopCoroutine(viewTransition); viewTransition=null; IsChangingView=false; CaptureMouse(false); }
 
-        private void OnGUI()
-        {
-            // Monitör kullanılırken talimatlar ekranın kendi alt şeridindedir.
-            if (monitor == null || IsUsingMonitor || UIBlocked) return;
-            string hint = InReach ? "Monitöre bak ve E'ye bas | WASD: yürü | Fare: bak | Shift: hızlan" :
-                "WASD: yürü | Fare: bak | Monitöre yaklaş | Esc: duraklat";
-            GUI.Box(new Rect(15, Screen.height - 50, Mathf.Min(780, Screen.width - 30), 35), GameLanguage.Translate(hint));
-            if (!IsUsingMonitor && Cursor.lockState == CursorLockMode.Locked)
-                GUI.Label(new Rect(Screen.width / 2f - 5, Screen.height / 2f - 10, 20, 20), "+");
-        }
     }
 }
+
+

@@ -138,6 +138,9 @@ Fare: bak|Mouse: look
 Shift: hızlan|Shift: run
 Monitöre yaklaş|Approach the monitor
 Esc: duraklat|Esc: pause
+PANEL ERİŞİMİ|TERMINAL ACCESS
+Yakınlaşmak için|Focus with
+MONİTÖR|MONITOR
  sn| sec";
             foreach(var line in ui.Split('\n')){var pair=line.TrimEnd('\r').Split('|');if(pair.Length==2)map[pair[0]]=pair[1];}
             // Aynı olay verisinin başlık, açıklama, seçenek ve sonuçlarını birlikte çeviririz.
@@ -169,3 +172,4 @@ Power grid at critical load|Middle East|Cooling demand has pushed the grid to it
         }
     }
 }
+
