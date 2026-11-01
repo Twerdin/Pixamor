@@ -19,6 +19,7 @@ partial class Check
     {
         var session = new GameSession();
         UnityEngine.MonoBehaviour.Session = session;
+        typeof(GameSession).GetField("shiftDuration",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(session,360f);
         session.RestartSession();
         var manager = new CrisisManager();
         manager.GetType().GetField("spawnInterval",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(manager,20f);

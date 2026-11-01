@@ -16,7 +16,7 @@ namespace Pixamor
         [SerializeField, Range(0, 100)] private int startingClimate = 70;
 
         [Header("Vardiya ve bütçe (saniye)")]
-        [SerializeField, Min(1f)] private float shiftDuration = 360f;
+        [SerializeField, Min(1f)] private float shiftDuration = 300f;
         [SerializeField, Min(1f)] private float incomeInterval = 60f;
         [SerializeField, Min(0)] private int incomeAmount = 30;
 

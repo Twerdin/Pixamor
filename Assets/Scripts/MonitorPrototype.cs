@@ -140,7 +140,7 @@ namespace Pixamor
             var time = ui.Rect(root,"ShiftClock",1240,24,324,152);
             var timeTitle = ui.Caption(time,"VARDİYA SÜRESİ",0,0,324);
             timeTitle.alignment = TextAlignmentOptions.MidlineRight;
-            clock = ui.Number(time,"06:00",0,28,324,100,90);
+            clock = ui.Number(time,"05:00",0,28,324,100,90);
             clock.alignment = TextAlignmentOptions.TopRight;
             clockState = ui.Text(time,"CANLI",0,126,324,26,21,CommandUI.Teal,"strong");
             clockState.alignment = TextAlignmentOptions.MidlineRight;

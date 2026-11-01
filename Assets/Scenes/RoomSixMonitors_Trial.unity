@@ -15144,7 +15144,7 @@ MonoBehaviour:
   difficulty: 1
   startingHappiness: 70
   startingClimate: 70
-  shiftDuration: 360
+  shiftDuration: 300
   incomeInterval: 60
   incomeAmount: 30
 --- !u!4 &1287058784
