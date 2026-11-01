@@ -7,7 +7,7 @@ namespace Pixamor.Editor
 {
     public static class TrialRoomInteractionSetup
     {
-        public const string ModelPath="Assets/Prefabs/iklim_yönetim_odası (3).fbx";
+        public const string ModelPath="Assets/Prefabs/iklim_yönetim_odası (4).fbx";
         public const string ScenePath="Assets/Scenes/RoomSixMonitors_Trial.unity";
         [MenuItem("İklim Operatörü/Deneme/Masa Yerleşimini ve Etkileşimi Güncelle")]
         public static void Upgrade()
@@ -100,8 +100,8 @@ namespace Pixamor.Editor
         {
             if(source==null)return null;
             if(cache.TryGetValue(source,out var found))return found;
-            const string folder="Assets/Materials/RoomTrial/Model3";
-            if(!AssetDatabase.IsValidFolder(folder))AssetDatabase.CreateFolder("Assets/Materials/RoomTrial","Model3");
+            const string folder="Assets/Materials/RoomTrial/Model4";
+            if(!AssetDatabase.IsValidFolder(folder))AssetDatabase.CreateFolder("Assets/Materials/RoomTrial","Model4");
             string path=folder+"/"+source.name.Replace("/","_")+".mat";
             var material=AssetDatabase.LoadAssetAtPath<Material>(path);
             if(material==null)
