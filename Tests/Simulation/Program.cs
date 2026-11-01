@@ -23,6 +23,8 @@ partial class Check {
  static void Tick(GameSession g,float seconds) { UnityEngine.Time.deltaTime=seconds; Call(g,"Update"); Call(g,"LateUpdate"); }
  static void CreateSimulation(out GameSession g,out CrisisManager m) {
   g=new GameSession();UnityEngine.MonoBehaviour.Session=g;g.RestartSession();m=new CrisisManager();
+  // Eski sınır/bütçe senaryoları kendi 20 saniyelik zaman çizelgesini korur.
+  m.GetType().GetField("spawnInterval",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(m,20f);
   m.GetType().GetField("shuffleOnRestart",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(m,false);
   m.GetType().GetMethod("Awake",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(m,null);
   m.GetType().GetMethod("OnEnable",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(m,null);
@@ -47,7 +49,12 @@ partial class Check {
   g.RestartSession();Tick(g,360);Assert(g.State==SessionState.Lost && m.MissedCount>0,"Uzun karede süre aşımı ve kayıp işlenir");
   g.RestartSession();Tick(g,5);m.Open(m.Active[0]);g.RestartSession();Assert(m.OpenCard==null && m.Active.Count==0 && !g.IsPaused,"Yeniden başlatma açık krizi temizler");
  }
- static void Main() { RunDifficultyLanguageChecks(); RunBalancePolicies(); RunCrises();
+ static void RunFastSpawnCheck() {
+  var g=new GameSession();UnityEngine.MonoBehaviour.Session=g;g.RestartSession();var m=new CrisisManager();
+  var flags=BindingFlags.Instance|BindingFlags.NonPublic;m.GetType().GetMethod("Awake",flags).Invoke(m,null);m.GetType().GetMethod("OnEnable",flags).Invoke(m,null);
+  int spawned=0;m.CrisisSpawned+=_=>spawned++;Tick(g,5);m.Open(m.Active[0]);Tick(g,11);Assert(spawned==1,"Yeni tempoda 17. saniyeden önce ikinci afet yok");Tick(g,1);Assert(spawned==2 && !g.IsPaused,"Yeni tempoda kart açıkken 12 saniyede ikinci afet");Tick(g,12);Assert(spawned==3,"Yeni tempoda 29. saniyede üçüncü afet");
+ }
+ static void Main() { RunFastSpawnCheck(); RunDifficultyLanguageChecks(); RunBalancePolicies(); RunCrises();
   var g=new GameSession(); g.RestartSession();
   Assert(g.Money==60 && g.Happiness==70 && g.Climate==70 && g.RemainingTime==360,"Initial resources");
   g.SetPaused(true); Tick(g,65); Assert(g.RemainingTime==360 && g.Money==60,"Pause freezes time and income");
@@ -65,4 +72,5 @@ partial class Check {
   g.RestartSession(); g.ApplyResourceChanges(-46,-46); Assert(g.HasHappinessWarning && g.HasClimateWarning,"Warnings below 25");
  }
 }
+
 

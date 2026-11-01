@@ -8,8 +8,8 @@ namespace Pixamor
     public class CrisisManager : MonoBehaviour
     {
         [SerializeField, Min(0f)] private float firstCrisisTime = 5f;
-        // Sabit prototip temposu eski sahnelerin kayıtlı 25 saniyesinden etkilenmez.
-        private const float spawnInterval = 20f;
+        // Yeni tempo: 12 saniyede bir afet. Sahnedeki eski kayıtlar bu değeri değiştirmez.
+        private float spawnInterval = 12f;
         public void ConfigureTempo() { firstCrisisTime=5f; }
 
         private GameSession session;
@@ -164,3 +164,4 @@ namespace Pixamor
         }
     }
 }
+
