@@ -897,11 +897,11 @@ PlayerSettings:
   activeInputHandler: 1
   windowsGamepadBackendHint: 0
   enableDirectStorage: 0
-  cloudProjectId: d0abb21f-16cd-489d-9df0-3a665d0e0452
+  cloudProjectId: 55ef9a91-2a79-4382-b32a-939f942008ca
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
   projectName: Pixamor
-  organizationId: fatihdagli19
+  organizationId: receppro001
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   hmiLoadingImage: {fileID: 0}
